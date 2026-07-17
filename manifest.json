@@ -1,0 +1,17 @@
+{
+  "name": "Nexus Secure Pro",
+  "short_name": "Nexus",
+  "description": "End-to-End Encrypted P2P Mesh Messenger",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#141418",
+  "theme_color": "#141418",
+  "icons": [
+    {
+      "src": "logo.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
