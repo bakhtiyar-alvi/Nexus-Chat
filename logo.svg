@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+    <defs>
+        <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#5865F2" />
+            <stop offset="100%" stop-color="#4752C4" />
+        </linearGradient>
+    </defs>
+    <!-- Background Plate -->
+    <rect width="512" height="512" rx="112" fill="#141418" />
+    <!-- Chat Bubble -->
+    <path d="M400 256c0 79.5-64.5 144-144 144-24.6 0-47.8-6.2-68.5-17.1L112 400l17.1-75.5C118.2 303.8 112 280.6 112 256c0-79.5 64.5-144 144-144s144 64.5 144 144z" fill="url(#bg-grad)" />
+    <!-- Secure Lock Icon -->
+    <path d="M256 176c-26.5 0-48 21.5-48 48v16h-16v96h128v-96h-16v-16c0-26.5-21.5-48-48-48zm0 16c17.6 0 32 14.4 32 32v16h-64v-16c0-17.6 14.4-32 32-32zm0 80c8.8 0 16 7.2 16 16s-7.2 16-16 16-16-7.2-16-16 7.2-16 16-16z" fill="#ffffff" />
+</svg>
