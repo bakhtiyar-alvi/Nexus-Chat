@@ -131,7 +131,8 @@
         .bubble code { background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
         .bubble a { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; transition: 0.2s; }
         .bubble a:hover { opacity: 0.8; }
-        .media-preview { max-width: 100%; border-radius: 8px; margin-bottom: 8px; cursor: pointer; display: block; border: 1px solid var(--border-light); }
+        .media-preview { max-width: 100%; border-radius: 8px; margin-bottom: 8px; cursor: pointer; display: block; border: 1px solid var(--border-light); transition: transform 0.2s; }
+        .media-preview:hover { transform: scale(1.02); }
         audio { height: 36px; outline: none; max-width: 220px; margin-bottom: 5px; border-radius: 18px; }
         
         .timestamp-row { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text-muted); margin-top: 4px; margin-bottom: 8px;}
@@ -197,7 +198,7 @@
         .recording-overlay { display: none; background: rgba(255, 95, 86, 0.1); border: 1px solid rgba(255, 95, 86, 0.3); border-radius: 12px; padding: 0 15px; height: 44px; align-items: center; justify-content: space-between; flex: 1; }
 
         /* ==========================================================================
-           MODALS, TOASTS & SETTINGS
+           MODALS, LIGHTBOX & SETTINGS
            ========================================================================== */
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--bg-panel); border: 1px solid var(--accent); color: var(--text-main); padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow-glow); opacity: 0; pointer-events: none; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); z-index: 2000;}
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -214,6 +215,11 @@
         .code-box:focus { border-color: var(--accent); }
         .btn-outline { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border-light); font-size: 13px; font-weight: 600; color: var(--text-main); flex: 1; cursor: pointer; transition: 0.2s;}
         .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: var(--bg-input);}
+
+        /* Lightbox */
+        .lightbox-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:9999; display:none; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; backdrop-filter:blur(10px); }
+        .lightbox-overlay.show { opacity:1; }
+        .lightbox-img { max-width:90%; max-height:90%; border-radius:8px; box-shadow:var(--shadow-glow); object-fit:contain; }
 
         .highlight-anim { animation: highlightFlash 2s ease-out; }
         
@@ -272,7 +278,7 @@
                         <div style="font-size:13px; font-weight:bold;">Settings & Profile</div>
                         <div class="contact-status" id="my-status-display">Online</div>
                     </div>
-                    <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+                    <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
                 </div>
             </div>
 
@@ -301,6 +307,10 @@
                             </div>
                         </div>
                         <div style="display:flex; gap: 5px; align-items: center;">
+                            <!-- Call Engine Buttons -->
+                            <button class="btn-action" style="width:36px;height:36px;background:transparent;color:var(--accent); display:none;" id="btn-voice-call" title="Voice Call"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></button>
+                            <button class="btn-action" style="width:36px;height:36px;background:transparent;color:var(--accent); display:none;" id="btn-video-call" title="Video Call"><svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></button>
+
                             <button class="btn-action" style="width:36px;height:36px;background:transparent;" id="btn-search-chat" title="Search Chat"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
                             <button class="btn-action" style="width:36px;height:36px;background:transparent;color:#FFBD2E;" id="btn-clear-chat" title="Clear Chat Locally"><svg viewBox="0 0 24 24"><path d="M15 4V3H9v1H4v2h1v13c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V6h1V4h-5zm2 15H7V6h10v13z"/></svg></button>
                             <button class="btn-action" style="width:36px;height:36px;background:transparent;color:#FF5F56;" id="btn-nuke-chat" title="Nuke Chat Globally"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg></button>
@@ -482,14 +492,40 @@
         </div>
     </div>
 
+    <!-- Call Screen Overlay -->
+    <div id="call-overlay" class="panel-overlay" style="z-index: 2000;">
+        <div class="modal-box" style="padding:0; height:450px; overflow:hidden; background:#000; position:relative;">
+            <video id="remote-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; position:absolute; inset:0; z-index:1; display:none;"></video>
+            <video id="local-video" autoplay playsinline muted style="width:100px; height:140px; object-fit:cover; position:absolute; bottom:20px; right:20px; border-radius:12px; z-index:3; border:2px solid var(--accent); display:none; box-shadow:var(--shadow-glow);"></video>
+            
+            <div id="call-ui-layer" style="z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; background:rgba(20,20,24,0.9); backdrop-filter:blur(10px);">
+                <div class="avatar" id="call-avatar" style="width:120px; height:120px; font-size:40px; box-shadow:var(--shadow-glow); margin-bottom:20px;">?</div>
+                <h2 id="call-name" style="color:#fff; font-size:22px; margin-bottom:5px;">Friend</h2>
+                <p id="call-status" style="color:var(--text-muted); font-size:14px;">Calling...</p>
+            </div>
+
+            <div style="z-index:3; position:absolute; bottom:30px; left:50%; transform:translateX(-50%); display:flex; gap:30px;">
+                <button id="btn-answer-call" class="btn-action" style="background:#27C93F; color:#fff; width:60px; height:60px; border-radius:50%; display:none; box-shadow:0 0 20px rgba(39,201,63,0.5);"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></button>
+                <button id="btn-end-call" class="btn-action" style="background:#FF5F56; color:#fff; width:60px; height:60px; border-radius:50%; box-shadow:0 0 20px rgba(255,95,86,0.5);"><svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox Overlay -->
+    <div id="lightbox-overlay" class="lightbox-overlay">
+        <button class="btn-action" id="btn-close-lightbox" style="position:absolute; top:20px; right:20px; z-index:10; background:rgba(0,0,0,0.5); color:#fff;"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+        <img id="lightbox-img" class="lightbox-img" src="">
+    </div>
+
     <div class="toast" id="global-toast">Notification</div>
 
     <div id="floating-bubble"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg><div class="badge" id="bubble-badge">1</div></div>
 
     <script>
         /**
-         * NEXUS SECURE PRO - Transfer Progress Upgrade
-         * - WhatsApp-style progress bars for file uploads and downloads.
+         * NEXUS SECURE PRO - Media Lightbox & VoIP Engine Integration
+         * - Feature 4: Fullscreen glassmorphism image lightbox overlay.
+         * - Feature 1: Peer-to-Peer Voice & Video calling with unified overlay interface.
          */
 
         // ==========================================================================
@@ -664,13 +700,14 @@
         }
 
         // ==========================================================================
-        // NETWORK (PeerJS)
+        // NETWORK (PeerJS & Call Engine)
         // ==========================================================================
         class NetworkManager {
             #peer = null; #conns = new Map(); #keys = new Map(); #pending = new Set();
             #crypto = new CryptoManager(); #app; #chunkBuffers = new Map();
 
             constructor(app) { this.#app = app; }
+            get nativePeer() { return this.#peer; }
 
             init(myId) {
                 this.#peer = new Peer(myId, { 
@@ -686,6 +723,7 @@
                     else setTimeout(()=>this.#peer?.reconnect(), 3000); 
                 });
                 this.#peer.on('connection', (c) => this.#setupConn(c, false));
+                this.#peer.on('call', (call) => this.#app.onIncomingCall(call));
             }
 
             connect(peerId) {
@@ -748,7 +786,7 @@
                 else { this.#app.onData(peerId, d); }
             }
 
-                                    async send(id, obj, onProgressCallback = null) {
+            async send(id, obj, onProgressCallback = null) {
                 const c = this.#conns.get(id); if(!c || !c.open) return false;
                 const key = this.#keys.get(id);
                 const payload = (obj.type === 'msg' && key) ? { enc: await this.#crypto.encrypt(JSON.stringify(obj), key) } : obj;
@@ -759,7 +797,6 @@
                     const chunkId = Utils.uuid(); const totalChunks = Math.ceil(payloadStr.length / CHUNK_SIZE);
                     for (let i = 0; i < totalChunks; i++) {
                         c.send({ _chunk: true, id: chunkId, i: i, t: totalChunks, d: payloadStr.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE) });
-                        // Push real-time progress to the UI
                         if (onProgressCallback) onProgressCallback(Math.round(((i + 1) / totalChunks) * 100));
                         await new Promise(r => setTimeout(r, 5)); 
                     }
@@ -770,16 +807,17 @@
                 return true;
             }
 
-
             isConnected(id) { return this.#conns.has(id) && this.#conns.get(id).open && this.#keys.has(id); }
             disconnect(id) { const c = this.#conns.get(id); if(c) c.close(); this.#conns.delete(id); this.#keys.delete(id); }
-                        broadcastProfile(data) { 
+            
+            broadcastProfile(data) { 
                 for(let id of this.#conns.keys()) {
                     this.send(id, { type: 'sys', act: 'profile_sync', ...data }); 
                 }
             }
+        }
 
-       } // ==========================================================================
+        // ==========================================================================
         // UI MANAGER (DOM, Themes, Modals, Toasts)
         // ==========================================================================
         class UIManager {
@@ -855,6 +893,10 @@
                 
                 this.editContactId = null; this.tempAvatarB64 = null;
                 this.mediaRecorder = null; this.audioChunks = []; this.recordInterval = null; this.cancelAudio = false;
+
+                // VoIP Call State
+                this.currentCall = null;
+                this.localStream = null;
             }
 
             async start() {
@@ -930,23 +972,6 @@
                 this.ui.showModal('contact-modal');
             }
 
-                        // --- Global Progress Methods ---
-            onTransferProgress(type, pct) {
-                const wrap = document.getElementById('transfer-progress-wrap');
-                const bar = document.getElementById('transfer-bar');
-                const txt = document.getElementById('transfer-pct');
-                if(wrap) {
-                    wrap.style.display = 'flex';
-                    if(bar) bar.style.width = `${pct}%`;
-                    if(txt) txt.innerText = `${pct}%`;
-                }
-            }
-
-            onTransferComplete(type) {
-                const wrap = document.getElementById('transfer-progress-wrap');
-                if(wrap) wrap.style.display = 'none';
-            }
-
             // --- UI Binding ---
             bindEvents() {
                 // Window
@@ -969,10 +994,11 @@
                 document.getElementById('color-accent').oninput = Utils.debounce((e) => { document.documentElement.style.setProperty('--accent', e.target.value); this.store.set('accent', e.target.value); }, 200);
                 document.getElementById('slider-opacity').oninput = (e) => { document.documentElement.style.setProperty('--window-opacity', e.target.value); this.store.set('opacity', e.target.value); };
                 document.getElementById('slider-fontsize').oninput = (e) => { document.documentElement.style.setProperty('--font-size-base', e.target.value+'px'); this.store.set('fontSize', e.target.value); };
-                                const statInp = document.getElementById('input-my-status');
+                
+                // Profile & Status Syncer
+                const statInp = document.getElementById('input-my-status');
                 this.store.get('myStatus', 'Online').then(s => { statInp.value=s; document.getElementById('my-status-display').innerText=s; });
 
-                // Profile / Wallpaper Real-time Sync
                 document.getElementById('settings-my-avatar').onclick = () => document.getElementById('input-my-avatar').click();
                 document.getElementById('input-my-avatar').onchange = async (e) => { 
                     const f = e.target.files[0]; if(!f) return; 
@@ -988,11 +1014,11 @@
                     this.net.broadcastProfile({ status: statInp.value });  
                 };
 
+                // Wallpaper & Backups
                 document.getElementById('btn-upload-wallpaper').onclick = () => document.getElementById('input-wallpaper').click();
                 document.getElementById('input-wallpaper').onchange = async (e) => { const f = e.target.files[0]; if(!f) return; const b64 = await Utils.compressImage(f); await this.store.set('chatWallpaper', b64); this.loadMyCustomizations(); };
                 document.getElementById('btn-clear-wallpaper').onclick = async () => { await this.store.set('chatWallpaper', null); document.getElementById('chat-bg').style.backgroundImage = 'none'; };
 
-                // Backups
                 document.getElementById('btn-export-backup').onclick = async () => { const data = await this.store.exportDB(); const a = document.createElement('a'); a.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(data); a.download = `nexus_backup_${Utils.formatTime(Date.now()).replace(':','')}.json`; a.click(); };
                 document.getElementById('btn-import-backup').onclick = () => document.getElementById('input-backup-file').click();
                 document.getElementById('input-backup-file').onchange = (e) => { const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = async (ev) => { try { await this.store.importDB(ev.target.result); alert("Backup Restored! Reloading app."); location.reload(); } catch(err) { alert("Import failed: " + err.message); } }; reader.readAsText(file); };
@@ -1086,14 +1112,16 @@
                 document.getElementById('btn-cancel-mic').onclick = () => this.cancelRecording();
                 document.getElementById('btn-send-mic').onclick = () => this.stopRecordingAndSend();
 
-                // Global Context Menu Closer
+                // Context Menu & Global Closers
                 document.addEventListener('click', (e) => {
                     if(!e.target.closest('.context-menu') && !e.target.closest('.btn-msg-menu')) {
                         document.getElementById('context-menu').classList.remove('active');
                     }
+                    if(e.target.id === 'lightbox-overlay') {
+                        this.closeLightbox();
+                    }
                 });
 
-                // Context Menu Actions
                 document.querySelectorAll('.react-btn').forEach(btn => {
                     btn.onclick = () => {
                         this.sendReact(this.contextState.targetId, btn.dataset.emoji);
@@ -1107,16 +1135,23 @@
                 document.getElementById('cmenu-pin').onclick = () => { this.togglePin(); document.getElementById('context-menu').classList.remove('active'); };
                 document.getElementById('cmenu-resend').onclick = () => { this.resendMessage(); document.getElementById('context-menu').classList.remove('active'); };
                 document.getElementById('cmenu-delete').onclick = () => { this.deleteMessageLocally(); document.getElementById('context-menu').classList.remove('active'); };
+
+                // Feature 4: Lightbox Actions
+                document.getElementById('btn-close-lightbox').onclick = () => this.closeLightbox();
+
+                // Feature 1: Call Actions
+                document.getElementById('btn-voice-call').onclick = () => this.startCall(false);
+                document.getElementById('btn-video-call').onclick = () => this.startCall(true);
+                document.getElementById('btn-end-call').onclick = () => this.endCall(true);
             }
 
             // --- Network Events ---
             onCloudConnect() { document.getElementById('global-server-dot').className='server-dot online'; document.getElementById('global-server-text').innerText='Cloud Online'; this.renderContacts(); }
             onCloudDisconnect() { document.getElementById('global-server-dot').className='server-dot'; document.getElementById('global-server-text').innerText='Reconnecting...'; }
             
-                        async onPeerConnect(id) {
+            async onPeerConnect(id) {
                 const c = await this.store.getContact(id); if(!c) await this.store.saveContact({id, name:"Unknown", status:'Online'});
                 
-                // Fetch local card details to swap during handshake
                 const myStat = await this.store.get('myStatus', 'Online');
                 const myAv = await this.store.get('myAvatar', null);
                 
@@ -1125,7 +1160,11 @@
                 this.flushOutbox(id);
             }
 
-            onPeerDisconnect(id) { this.renderContacts(); if(this.activeContact === id) this.updateChatHeader(); }
+            onPeerDisconnect(id) { 
+                this.renderContacts(); 
+                if(this.activeContact === id) this.updateChatHeader(); 
+                if(this.currentCall && this.currentCall.peer === id) this.endCall(false);
+            }
 
             async flushOutbox(id) {
                 if(!this.net.isConnected(id)) return;
@@ -1192,7 +1231,7 @@
                             await this.store.saveMsg(m); if(this.activeContact===m.friendId) this.renderMsg(m);
                         }
                     }
-                                        else if (d.act === 'profile_sync') {
+                    else if (d.act === 'profile_sync') {
                         const c = await this.store.getContact(peerId);
                         if (c) {
                             if (d.avatar !== undefined) c.avatar = d.avatar;
@@ -1211,6 +1250,7 @@
                             }
                         }
                     }
+                    else if (d.act === 'end_call') { this.endCall(false); }
                     else if (d.act === 'nuke') {
                         await this.store.clearHistory(peerId);
                         if(this.activeContact === peerId) {
@@ -1219,6 +1259,122 @@
                         }
                     }
                 }
+            }
+
+            // --- Feature 4: Lightbox Methods ---
+            openLightbox(src) {
+                document.getElementById('lightbox-img').src = src;
+                document.getElementById('lightbox-overlay').style.display = 'flex';
+                setTimeout(() => document.getElementById('lightbox-overlay').classList.add('show'), 10);
+            }
+
+            closeLightbox() {
+                document.getElementById('lightbox-overlay').classList.remove('show');
+                setTimeout(() => { document.getElementById('lightbox-overlay').style.display = 'none'; document.getElementById('lightbox-img').src = ''; }, 200);
+            }
+
+            // --- Feature 1: VoIP Calling Engine ---
+            async startCall(isVideo) {
+                if(!this.activeContact || !this.net.isConnected(this.activeContact)) return this.ui.showToast("Contact offline.");
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({video: isVideo, audio: true});
+                    this.localStream = stream;
+                    await this.showCallUI(this.activeContact, 'Calling...', true, isVideo);
+                    
+                    if(isVideo) {
+                        const lv = document.getElementById('local-video');
+                        lv.style.display = 'block'; lv.srcObject = stream;
+                    }
+
+                    const call = this.net.nativePeer.call(this.activeContact, stream, { metadata: { isVideo } });
+                    this.currentCall = call;
+                    this.bindCallEvents(call);
+                } catch(e) { this.ui.showToast("Media access denied."); }
+            }
+
+            async onIncomingCall(call) {
+                this.currentCall = call;
+                const isVideo = call.metadata?.isVideo;
+                await this.showCallUI(call.peer, 'Incoming Call...', false, isVideo);
+                
+                const btnAns = document.getElementById('btn-answer-call');
+                btnAns.style.display = 'flex';
+                
+                btnAns.onclick = async () => {
+                    try {
+                        btnAns.style.display = 'none';
+                        document.getElementById('call-status').innerText = 'Connecting...';
+                        const stream = await navigator.mediaDevices.getUserMedia({video: isVideo, audio: true});
+                        this.localStream = stream;
+                        if(isVideo) {
+                            const lv = document.getElementById('local-video');
+                            lv.style.display = 'block'; lv.srcObject = stream;
+                        }
+                        call.answer(stream);
+                        this.bindCallEvents(call);
+                    } catch(e) { this.endCall(true); }
+                };
+            }
+
+            bindCallEvents(call) {
+                call.on('stream', (remoteStream) => {
+                    document.getElementById('call-status').style.display = 'none';
+                    if(call.metadata?.isVideo) document.getElementById('call-avatar').style.display = 'none';
+                    const rv = document.getElementById('remote-video');
+                    rv.style.display = 'block';
+                    rv.srcObject = remoteStream;
+                });
+                call.on('close', () => this.endCall(false));
+            }
+
+            async showCallUI(peerId, text, isOutbound, isVideo) {
+                const c = await this.store.getContact(peerId);
+                const name = c ? c.name : "Unknown";
+                const av = c && c.avatar ? c.avatar : null;
+                
+                document.getElementById('call-name').innerText = name;
+                document.getElementById('call-status').innerText = text;
+                document.getElementById('call-status').style.display = 'block';
+                
+                const avEl = document.getElementById('call-avatar');
+                avEl.style.display = 'flex';
+                if(av) { avEl.style.backgroundImage = `url(${av})`; avEl.innerText = ''; avEl.style.color = 'transparent'; }
+                else { avEl.style.backgroundImage = 'none'; avEl.innerText = name.charAt(0).toUpperCase(); avEl.style.color = '#fff'; }
+                
+                this.ui.showModal('call-overlay');
+            }
+
+            endCall(broadcast = true) {
+                if(this.currentCall) {
+                    this.currentCall.close();
+                    if(broadcast && this.currentCall.peer) this.net.send(this.currentCall.peer, {type: 'sys', act: 'end_call'});
+                }
+                if(this.localStream) this.localStream.getTracks().forEach(t => t.stop());
+                
+                this.currentCall = null; this.localStream = null;
+                this.ui.hideModal('call-overlay');
+                document.getElementById('remote-video').style.display = 'none';
+                document.getElementById('local-video').style.display = 'none';
+                document.getElementById('btn-answer-call').style.display = 'none';
+                document.getElementById('remote-video').srcObject = null;
+                document.getElementById('local-video').srcObject = null;
+            }
+
+            // --- Global Progress Methods ---
+            onTransferProgress(type, pct) {
+                const wrap = document.getElementById('transfer-progress-wrap');
+                const bar = document.getElementById('transfer-bar');
+                const txt = document.getElementById('transfer-pct');
+                if(wrap) {
+                    wrap.style.display = 'flex';
+                    if(bar) bar.style.width = `${pct}%`;
+                    if(txt) txt.innerText = `${pct}%`;
+                }
+            }
+
+            onTransferComplete(type) {
+                const wrap = document.getElementById('transfer-progress-wrap');
+                if(wrap) wrap.style.display = 'none';
             }
 
             // --- Voice Engine ---
@@ -1310,6 +1466,10 @@
                 document.getElementById('header-status-dot').className = `status-indicator ${isOnline?'online':''}`;
                 document.getElementById('header-status-text').innerText = isOnline ? 'Online Secure' : 'Offline';
                 document.getElementById('header-status-text').style.color = isOnline ? '#23a559' : 'var(--text-muted)';
+                
+                // Show Call buttons only if connected
+                document.getElementById('btn-voice-call').style.display = isOnline ? 'flex' : 'none';
+                document.getElementById('btn-video-call').style.display = isOnline ? 'flex' : 'none';
             }
 
             async loadChatChunk() {
@@ -1487,7 +1647,7 @@
                 
                 let mediaHtml = '';
                 if(m.media && !m.isDeleted) {
-                    if(m.media.type === 'image') mediaHtml = `<img src="${m.media.data}" class="media-preview" onclick="window.open(this.src, '_blank')">`;
+                    if(m.media.type === 'image') mediaHtml = `<img src="${m.media.data}" class="media-preview" onclick="window.app.openLightbox('${m.media.data}')">`;
                     else if (m.media.type === 'audio') mediaHtml = `<audio controls src="${m.media.data}"></audio>`;
                     else mediaHtml = `<div style="background:rgba(0,0,0,0.2); padding:8px; border-radius:4px; margin-bottom:5px; font-size:12px; display:flex; justify-content:space-between; align-items:center;">
                         <span>📎 ${Utils.sanitize(m.media.name)}</span>
