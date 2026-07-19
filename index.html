@@ -1316,10 +1316,16 @@
                 };
             }
 
-            bindCallEvents(call) {
+                        bindCallEvents(call) {
                 call.on('stream', (remoteStream) => {
                     document.getElementById('call-status').style.display = 'none';
-                    if(call.metadata?.isVideo) document.getElementById('call-avatar').style.display = 'none';
+                    
+                    // FIX: If it's a video call, completely hide the grey frosted glass layer
+                    // so the video underneath is visible.
+                    if(call.metadata?.isVideo) {
+                        document.getElementById('call-ui-layer').style.display = 'none'; 
+                    }
+                    
                     const rv = document.getElementById('remote-video');
                     rv.style.display = 'block';
                     rv.srcObject = remoteStream;
@@ -1332,6 +1338,9 @@
                 const name = c ? c.name : "Unknown";
                 const av = c && c.avatar ? c.avatar : null;
                 
+                // FIX: Reset the frosted glass layer so it shows up for the NEXT call
+                document.getElementById('call-ui-layer').style.display = 'flex';
+                
                 document.getElementById('call-name').innerText = name;
                 document.getElementById('call-status').innerText = text;
                 document.getElementById('call-status').style.display = 'block';
@@ -1343,6 +1352,7 @@
                 
                 this.ui.showModal('call-overlay');
             }
+
 
             endCall(broadcast = true) {
                 if(this.currentCall) {
