@@ -307,6 +307,15 @@
                         </div>
                     </div>
 
+                    <!-- Global Receiver Download Progress Bar -->
+                    <div id="transfer-progress-wrap" style="display:none; background: rgba(0,0,0,0.5); padding: 6px 20px; font-size: 11px; align-items:center; gap:10px; border-bottom: 1px solid var(--border-light); z-index: 5; backdrop-filter: blur(10px);">
+                        <span style="color:var(--text-muted); white-space:nowrap;"><svg viewBox="0 0 24 24" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Receiving Data...</span>
+                        <div style="flex:1; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden;">
+                            <div id="transfer-bar" style="height:100%; width:0%; background:#27C93F; transition:width 0.1s linear;"></div>
+                        </div>
+                        <span id="transfer-pct" style="color:#27C93F; font-weight:bold; min-width:30px; text-align:right;">0%</span>
+                    </div>
+
                     <!-- Chat History (Virtual Scroll Optimized) -->
                     <div class="chat-history" id="chat-history">
                         <div class="chunk-loader" id="chunk-loader" style="text-align:center; padding:10px; font-size:12px; color:var(--text-muted);">Loading history...</div>
@@ -479,13 +488,8 @@
 
     <script>
         /**
-         * NEXUS SECURE PRO - The Final Reintegration
-         * - ALL previously missing features (PFP, Backups, Files, Voice) seamlessly injected.
-         * - FIXED: The `.oninput` crash caused by missing search bar.
-         * - FIXED: Missing `openContactModal()` function that crashed Edit Contact.
-         * - RESTORED: Emoji Reactions natively integrated into Context Menu.
-         * - RESTORED: "Pin Message" integrated into Context Menu.
-         * - RESTORED: "Resend Offline Message" integrated into Context Menu.
+         * NEXUS SECURE PRO - Transfer Progress Upgrade
+         * - WhatsApp-style progress bars for file uploads and downloads.
          */
 
         // ==========================================================================
@@ -609,8 +613,8 @@
                 return new Promise(res => {
                     const req = this.#db.transaction('messages', 'readonly').objectStore('messages').index('friendId').getAll(IDBKeyRange.only(friendId));
                     req.onsuccess = () => {
-                        let arr = req.result.sort((a,b) => b.timestamp - a.timestamp); // newest first
-                        res(arr.slice(offset, offset+limit).reverse()); // return chronological chunk
+                        let arr = req.result.sort((a,b) => b.timestamp - a.timestamp); 
+                        res(arr.slice(offset, offset+limit).reverse()); 
                     };
                 });
             }
@@ -632,7 +636,7 @@
             async getPendingMsgs(friendId) {
                 return new Promise(res => {
                     const req = this.#db.transaction('messages', 'readonly').objectStore('messages').index('friendId').getAll(IDBKeyRange.only(friendId));
-                    req.onsuccess = () => res(req.result.filter(m => m.sender === 'me' && m.status === 'queued').sort((a,b)=>a.timestamp-b.timestamp));
+                    req.onsuccess = () => res(req.result.filter(m => m.sender === 'me' && (m.status === 'queued' || m.status === 'sending')).sort((a,b)=>a.timestamp-b.timestamp));
                 });
             }
             async clearHistory(friendId) {
@@ -706,12 +710,21 @@
                 c.on('data', async (d) => {
                     try {
                         if (d._chunk) {
-                            if (!this.#chunkBuffers.has(d.id)) this.#chunkBuffers.set(d.id, []);
-                            const buffer = this.#chunkBuffers.get(d.id); buffer[d.i] = d.d;
-                            let isComplete = true; for(let i = 0; i < d.t; i++) { if(!buffer[i]) { isComplete = false; break; } }
-                            if (isComplete) { 
-                                const fullData = JSON.parse(buffer.join('')); 
+                            if (!this.#chunkBuffers.has(d.id)) this.#chunkBuffers.set(d.id, { buf: [], t: d.t, count: 0 });
+                            const chunkData = this.#chunkBuffers.get(d.id); 
+                            
+                            if (!chunkData.buf[d.i]) {
+                                chunkData.buf[d.i] = d.d;
+                                chunkData.count++;
+                            }
+                            
+                            const pct = Math.round((chunkData.count / chunkData.t) * 100);
+                            this.#app.onTransferProgress('incoming', pct);
+
+                            if (chunkData.count === chunkData.t) { 
+                                const fullData = JSON.parse(chunkData.buf.join('')); 
                                 this.#chunkBuffers.delete(d.id); 
+                                setTimeout(() => this.#app.onTransferComplete('incoming'), 500);
                                 this.#processData(c.peer, fullData); 
                             }
                         } else { this.#processData(c.peer, d); }
@@ -735,7 +748,7 @@
                 else { this.#app.onData(peerId, d); }
             }
 
-            async send(id, obj) {
+                                    async send(id, obj, onProgressCallback = null) {
                 const c = this.#conns.get(id); if(!c || !c.open) return false;
                 const key = this.#keys.get(id);
                 const payload = (obj.type === 'msg' && key) ? { enc: await this.#crypto.encrypt(JSON.stringify(obj), key) } : obj;
@@ -746,18 +759,27 @@
                     const chunkId = Utils.uuid(); const totalChunks = Math.ceil(payloadStr.length / CHUNK_SIZE);
                     for (let i = 0; i < totalChunks; i++) {
                         c.send({ _chunk: true, id: chunkId, i: i, t: totalChunks, d: payloadStr.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE) });
+                        // Push real-time progress to the UI
+                        if (onProgressCallback) onProgressCallback(Math.round(((i + 1) / totalChunks) * 100));
                         await new Promise(r => setTimeout(r, 5)); 
                     }
-                } else { c.send(payload); }
+                } else { 
+                    c.send(payload); 
+                    if (onProgressCallback) onProgressCallback(100);
+                }
                 return true;
             }
 
+
             isConnected(id) { return this.#conns.has(id) && this.#conns.get(id).open && this.#keys.has(id); }
             disconnect(id) { const c = this.#conns.get(id); if(c) c.close(); this.#conns.delete(id); this.#keys.delete(id); }
-            broadcastStatus(status) { for(let id of this.#conns.keys()) this.send(id, { type: 'sys', act: 'status', text: status }); }
-        }
+                        broadcastProfile(data) { 
+                for(let id of this.#conns.keys()) {
+                    this.send(id, { type: 'sys', act: 'profile_sync', ...data }); 
+                }
+            }
 
-        // ==========================================================================
+       } // ==========================================================================
         // UI MANAGER (DOM, Themes, Modals, Toasts)
         // ==========================================================================
         class UIManager {
@@ -799,26 +821,24 @@
                 else { w.classList.add('active'); b.classList.remove('active'); document.getElementById('bubble-badge').classList.remove('active'); document.getElementById('bubble-badge').innerText = '0'; }
             }
             
-           notify(text) {
+            notify(text) {
                 const isAppMinimized = !document.getElementById('app-window').classList.contains('active');
-                const isTabBackground = document.hidden; // Checks if browser tab is minimized or unfocused
-
-                // If minimized inside our internal window system, light up the floating bubble badge
+                const isTabBackground = document.hidden; 
+                
                 if (isAppMinimized) {
                     const b = document.getElementById('bubble-badge'); b.classList.add('active'); b.innerText = (parseInt(b.innerText) || 0) + 1;
                 }
                 
-                // Fire system-level desktop notification if internal window is minimized OR the browser tab is hidden
                 if (isAppMinimized || isTabBackground) {
                     if ('Notification' in window && Notification.permission === "granted") {
                         new Notification("Nexus Secure", { 
                             body: text,
-                            icon: "https://cdn-icons-png.flaticon.com/512/5609/5609356.png" // Clean fallback lock icon
+                            icon: "https://cdn-icons-png.flaticon.com/512/5609/5609356.png" 
                         });
                     }
                 }
             }
-        } // <--- THIS IS THE MISSING BRACKET!
+        }
 
         // ==========================================================================
         // APP CONTROLLER (Core Logic & Glue)
@@ -910,6 +930,23 @@
                 this.ui.showModal('contact-modal');
             }
 
+                        // --- Global Progress Methods ---
+            onTransferProgress(type, pct) {
+                const wrap = document.getElementById('transfer-progress-wrap');
+                const bar = document.getElementById('transfer-bar');
+                const txt = document.getElementById('transfer-pct');
+                if(wrap) {
+                    wrap.style.display = 'flex';
+                    if(bar) bar.style.width = `${pct}%`;
+                    if(txt) txt.innerText = `${pct}%`;
+                }
+            }
+
+            onTransferComplete(type) {
+                const wrap = document.getElementById('transfer-progress-wrap');
+                if(wrap) wrap.style.display = 'none';
+            }
+
             // --- UI Binding ---
             bindEvents() {
                 // Window
@@ -932,13 +969,25 @@
                 document.getElementById('color-accent').oninput = Utils.debounce((e) => { document.documentElement.style.setProperty('--accent', e.target.value); this.store.set('accent', e.target.value); }, 200);
                 document.getElementById('slider-opacity').oninput = (e) => { document.documentElement.style.setProperty('--window-opacity', e.target.value); this.store.set('opacity', e.target.value); };
                 document.getElementById('slider-fontsize').oninput = (e) => { document.documentElement.style.setProperty('--font-size-base', e.target.value+'px'); this.store.set('fontSize', e.target.value); };
-                const statInp = document.getElementById('input-my-status');
+                                const statInp = document.getElementById('input-my-status');
                 this.store.get('myStatus', 'Online').then(s => { statInp.value=s; document.getElementById('my-status-display').innerText=s; });
-                statInp.onchange = () => { this.store.set('myStatus', statInp.value); document.getElementById('my-status-display').innerText=statInp.value; this.net.broadcastStatus(statInp.value); };
 
-                // Profile / Wallpaper
+                // Profile / Wallpaper Real-time Sync
                 document.getElementById('settings-my-avatar').onclick = () => document.getElementById('input-my-avatar').click();
-                document.getElementById('input-my-avatar').onchange = async (e) => { const f = e.target.files[0]; if(!f) return; const b64 = await Utils.compressImage(f); await this.store.set('myAvatar', b64); this.loadMyCustomizations(); };
+                document.getElementById('input-my-avatar').onchange = async (e) => { 
+                    const f = e.target.files[0]; if(!f) return; 
+                    const b64 = await Utils.compressImage(f, 256); 
+                    await this.store.set('myAvatar', b64); 
+                    this.loadMyCustomizations(); 
+                    this.net.broadcastProfile({ avatar: b64 }); 
+                };
+
+                statInp.onchange = () => { 
+                    this.store.set('myStatus', statInp.value); 
+                    document.getElementById('my-status-display').innerText = statInp.value; 
+                    this.net.broadcastProfile({ status: statInp.value });  
+                };
+
                 document.getElementById('btn-upload-wallpaper').onclick = () => document.getElementById('input-wallpaper').click();
                 document.getElementById('input-wallpaper').onchange = async (e) => { const f = e.target.files[0]; if(!f) return; const b64 = await Utils.compressImage(f); await this.store.set('chatWallpaper', b64); this.loadMyCustomizations(); };
                 document.getElementById('btn-clear-wallpaper').onclick = async () => { await this.store.set('chatWallpaper', null); document.getElementById('chat-bg').style.backgroundImage = 'none'; };
@@ -1064,12 +1113,18 @@
             onCloudConnect() { document.getElementById('global-server-dot').className='server-dot online'; document.getElementById('global-server-text').innerText='Cloud Online'; this.renderContacts(); }
             onCloudDisconnect() { document.getElementById('global-server-dot').className='server-dot'; document.getElementById('global-server-text').innerText='Reconnecting...'; }
             
-            async onPeerConnect(id) {
+                        async onPeerConnect(id) {
                 const c = await this.store.getContact(id); if(!c) await this.store.saveContact({id, name:"Unknown", status:'Online'});
-                const myStat = await this.store.get('myStatus', 'Online'); this.net.send(id, {type:'sys', act:'status', text:myStat});
+                
+                // Fetch local card details to swap during handshake
+                const myStat = await this.store.get('myStatus', 'Online');
+                const myAv = await this.store.get('myAvatar', null);
+                
+                this.net.send(id, { type: 'sys', act: 'profile_sync', avatar: myAv, status: myStat });
                 this.renderContacts(); if(this.activeContact === id) this.updateChatHeader();
                 this.flushOutbox(id);
             }
+
             onPeerDisconnect(id) { this.renderContacts(); if(this.activeContact === id) this.updateChatHeader(); }
 
             async flushOutbox(id) {
@@ -1077,10 +1132,22 @@
                 const pending = await this.store.getPendingMsgs(id);
                 for(let m of pending) {
                     if(!this.net.isConnected(id)) break;
-                    m.status = 'sent'; m.timestamp = Date.now(); await this.store.saveMsg(m);
+                    m.status = 'sending'; 
+                    await this.store.saveMsg(m);
                     if(this.activeContact === id) this.renderMsg(m);
-                    this.net.send(id, { type:'msg', payload:m });
-                    await new Promise(r=>setTimeout(r, 10)); 
+                    
+                    const success = await this.net.send(id, { type:'msg', payload:m }, (pct) => {
+                        const pb = document.getElementById(`prog-bar-${m.id}`);
+                        const pt = document.getElementById(`prog-txt-${m.id}`);
+                        if(pb) pb.style.width = `${pct}%`;
+                        if(pt) pt.innerText = `${pct}%`;
+                    });
+                    
+                    if(success) {
+                        m.status = 'sent'; m.timestamp = Date.now(); 
+                        await this.store.saveMsg(m);
+                        if(this.activeContact === id) this.renderMsg(m);
+                    }
                 }
             }
 
@@ -1094,7 +1161,6 @@
                         this.renderMsg(rm); document.getElementById('typing-indicator').style.display = 'none';
                         this.net.send(peerId, { type:'sys', act:'delivered', id:rm.id });
                         
-                        // FIX: Only mark as read if the chat window is unminimized AND the browser tab is genuinely visible
                         if(document.getElementById('app-window').classList.contains('active') && !document.hidden) {
                             rm.status='read'; await this.store.saveMsg(rm); this.net.send(peerId, {type:'sys', act:'read', id:rm.id});
                         } else { 
@@ -1126,7 +1192,25 @@
                             await this.store.saveMsg(m); if(this.activeContact===m.friendId) this.renderMsg(m);
                         }
                     }
-                    else if(d.act === 'status') { const c = await this.store.getContact(peerId); if(c){ c.status=d.text; await this.store.saveContact(c); this.renderContacts(); } }
+                                        else if (d.act === 'profile_sync') {
+                        const c = await this.store.getContact(peerId);
+                        if (c) {
+                            if (d.avatar !== undefined) c.avatar = d.avatar;
+                            if (d.status !== undefined) c.status = d.status;
+                            await this.store.saveContact(c);
+                            this.renderContacts();
+                            if (this.activeContact === peerId) {
+                                document.getElementById('header-name').innerText = c.name;
+                                const av = document.getElementById('header-avatar');
+                                if (c.avatar) { 
+                                    av.style.backgroundImage = `url(${c.avatar})`; av.innerText = ''; av.style.color = 'transparent'; 
+                                } else { 
+                                    av.style.backgroundImage = 'none'; av.innerText = c.name.charAt(0).toUpperCase(); av.style.color = '#fff'; 
+                                }
+                                this.updateChatHeader();
+                            }
+                        }
+                    }
                     else if (d.act === 'nuke') {
                         await this.store.clearHistory(peerId);
                         if(this.activeContact === peerId) {
@@ -1259,13 +1343,27 @@
                         if(this.net.isConnected(this.activeContact)) this.net.send(this.activeContact, {type:'sys',act:'edit',id:m.id,text:text});
                     }
                 } else {
+                    const isConn = this.net.isConnected(this.activeContact);
                     const m = {
                         id: Utils.uuid(), friendId: this.activeContact, sender: 'me', text: text, media: mediaObj,
-                        timestamp: Date.now(), status: this.net.isConnected(this.activeContact) ? 'sent' : 'queued',
+                        timestamp: Date.now(), status: isConn ? 'sending' : 'queued',
                         isDeleted: false, isEdited: false, isPinned: false, replyTo: this.contextState.mode === 'reply' ? this.contextState.targetId : null, reactions: []
                     };
                     await this.store.saveMsg(m); this.msgCache.add(m.id); this.renderMsg(m);
-                    if(this.net.isConnected(this.activeContact)) this.net.send(this.activeContact, {type:'msg', payload:m});
+                    
+                    if(isConn) {
+                        const success = await this.net.send(this.activeContact, {type:'msg', payload:m}, (pct) => {
+                            const pb = document.getElementById(`prog-bar-${m.id}`);
+                            const pt = document.getElementById(`prog-txt-${m.id}`);
+                            if(pb) pb.style.width = `${pct}%`;
+                            if(pt) pt.innerText = `${pct}%`;
+                        });
+                        if(success) {
+                            m.status = 'sent';
+                            await this.store.saveMsg(m);
+                            this.renderMsg(m);
+                        }
+                    }
                 }
                 inp.value = ''; inp.style.height = '44px'; this.clearActionContext();
             }
@@ -1327,10 +1425,20 @@
             async resendMessage() {
                 const m = await this.store.getMsg(this.contextState.targetId); if(!m) return;
                 if (this.net.isConnected(this.activeContact)) {
-                    m.status = 'sent'; m.timestamp = Date.now(); 
+                    m.status = 'sending'; 
                     await this.store.saveMsg(m); this.renderMsg(m);
-                    this.net.send(this.activeContact, { type: 'msg', payload: m });
-                    this.ui.showToast("Message Resent");
+                    
+                    const success = await this.net.send(this.activeContact, { type: 'msg', payload: m }, (pct) => {
+                        const pb = document.getElementById(`prog-bar-${m.id}`);
+                        const pt = document.getElementById(`prog-txt-${m.id}`);
+                        if(pb) pb.style.width = `${pct}%`;
+                        if(pt) pt.innerText = `${pct}%`;
+                    });
+                    if(success) {
+                        m.status = 'sent'; m.timestamp = Date.now();
+                        await this.store.saveMsg(m); this.renderMsg(m);
+                        this.ui.showToast("Message Resent");
+                    }
                 } else {
                     this.ui.showToast("Cannot resend. Tunnel offline.");
                 }
@@ -1401,19 +1509,33 @@
                         }
                     });
                 }
+                
+                let progressHtml = '';
+                if(m.sender === 'me' && m.status === 'sending') {
+                    progressHtml = `
+                    <div style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px;">
+                        <div style="display:flex; justify-content:space-between; font-size:10px; color:rgba(255,255,255,0.7); margin-bottom:4px;">
+                            <span>Uploading...</span>
+                            <span id="prog-txt-${m.id}" style="font-weight:bold;">0%</span>
+                        </div>
+                        <div style="height: 4px; background: rgba(0,0,0,0.3); border-radius: 2px; overflow: hidden;">
+                            <div id="prog-bar-${m.id}" style="height: 100%; width: 0%; background: #27C93F; transition: width 0.1s linear;"></div>
+                        </div>
+                    </div>`;
+                }
 
                 let reactionsHtml = (m.reactions && m.reactions.length > 0) ? `<div class="reaction-container">${m.reactions.map(r => `<span class="reaction-pill" onclick="window.app.sendReact('${m.id}', '${r}')">${r}</span>`).join('')}</div>` : '';
 
-                const checks = { queued: `🕒`, sent: `✓`, delivered: `✓✓`, read: `<span style="color:var(--accent)">✓✓</span>` };
+                const checks = { queued: `🕒`, sending: `↑`, sent: `✓`, delivered: `✓✓`, read: `<span style="color:var(--accent)">✓✓</span>` };
                 let statStr = m.sender === 'me' && !m.isDeleted ? checks[m.status]||'' : '';
                 let pinIcon = m.isPinned ? `<div class="pinned-icon"><svg viewBox="0 0 24 24"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg></div>` : '';
 
                 w.innerHTML = `
                     <div class="message-inner">
-                        <div class="bubble">${pinIcon}${replyHtml}${mediaHtml}${text}${reactionsHtml}</div>
+                        <div class="bubble">${pinIcon}${replyHtml}${mediaHtml}${text}${reactionsHtml}${progressHtml}</div>
                         <div class="timestamp-row">
                             <span>${Utils.formatTime(m.timestamp)} ${m.isEdited ? '(edited)' : ''}</span>
-                            <span style="font-size:11px;">${statStr}</span>
+                            <span style="font-size:11px; font-weight:bold;">${statStr}</span>
                         </div>
                         ${!m.isDeleted ? `
                         <button class="btn-msg-menu" onclick="window.app.openContextMenu(event, '${m.id}', ${m.sender === 'me'}, '${m.status}', ${m.isPinned || false})">
@@ -1427,6 +1549,7 @@
 
         window.app = new AppController();
         document.addEventListener('DOMContentLoaded', () => window.app.start());
+
         // ==========================================================================
         // PWA SERVICE WORKER REGISTRATION
         // ==========================================================================
@@ -1437,7 +1560,6 @@
                     .catch(err => console.error('Service Worker Registration Failed:', err));
             });
         }
-
     </script>
 </body>
 </html>
