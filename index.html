@@ -335,10 +335,10 @@
 
                     <!-- Input Area -->
                     <div class="chat-input-wrapper">
-                        <!-- Giphy Search Panel Overlay -->
+                        <!-- KLIPY Search Panel Overlay -->
                         <div id="gif-panel" style="display:none; position:absolute; bottom:70px; left:20px; width:300px; height:350px; background:var(--bg-panel); border:1px solid var(--border-light); border-radius:12px; flex-direction:column; padding:10px; z-index:100; box-shadow:var(--shadow-soft); backdrop-filter:blur(15px);">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                <input type="text" id="gif-search" class="search-bar" placeholder="Search GIPHY..." style="flex:1;">
+                                <input type="text" id="gif-search" class="search-bar" placeholder="Search KLIPY..." style="flex:1;">
                                 <button class="btn-action" id="btn-close-gif" style="width:30px; height:30px; margin-left:5px;"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
                             </div>
                             <div id="gif-results" style="flex:1; overflow-y:auto; display:flex; flex-wrap:wrap; gap:5px; align-content:flex-start;"></div>
@@ -404,7 +404,8 @@
         <div class="context-item" id="cmenu-edit"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg> Edit Message</div>
         <div class="context-item" id="cmenu-pin"><svg viewBox="0 0 24 24"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg> <span id="cmenu-pin-text">Pin Message</span></div>
         <div class="context-item" id="cmenu-resend"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg> Resend Offline</div>
-        <div class="context-item danger" id="cmenu-delete"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Delete for Me</div>
+        <div class="context-item danger" id="cmenu-delete-me"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Delete for Me</div>
+        <div class="context-item danger" id="cmenu-delete-everyone"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg> Delete for Everyone</div>
     </div>
 
     <!-- Settings Modal -->
@@ -541,7 +542,7 @@
     <script>
         /**
          * NEXUS SECURE PRO - Media Architecture Expansion
-         * - Custom GIPHY integration (since Tenor API permanently shut down June 2026).
+         * - Custom KLIPY integration (since Tenor API permanently shut down June 2026).
          * - Inline HTML5 Video Player support for .mp4/.webm.
          * - Pinch-to-zoom multi-touch gesture engine for Lightbox.
          * - Hardware Camera Switching API via WebRTC ReplaceTrack.
@@ -909,6 +910,7 @@
                 this.contextState = { targetId: null, mode: null }; 
                 this.msgOffset = 0; this.isLoadingChunk = false; this.msgCache = new Set();
                 this.typingTimer = null;
+                this.pendingShareText = null; 
                 
                 this.editContactId = null; this.tempAvatarB64 = null;
                 this.mediaRecorder = null; this.audioChunks = []; this.recordInterval = null; this.cancelAudio = false;
@@ -939,6 +941,18 @@
                 
                 if('Notification' in window && Notification.permission === "default") Notification.requestPermission();
                 
+                // Catch OS Share Sheet data
+                const params = new URLSearchParams(window.location.search);
+                const sharedTitle = params.get('title');
+                const sharedText = params.get('text');
+                const sharedUrl = params.get('url');
+                
+                if (sharedTitle || sharedText || sharedUrl) {
+                    this.pendingShareText = [sharedTitle, sharedText, sharedUrl].filter(Boolean).join('\n');
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    setTimeout(() => this.ui.showToast("Select a contact to share with"), 1000);
+                }
+
                 this.bindEvents();
                 this.net.init(this.myId);
                 this.renderContacts();
@@ -1161,7 +1175,7 @@
                 };
                 document.getElementById('btn-close-gif').onclick = () => document.getElementById('gif-panel').style.display = 'none';
                 
-                                                                                                document.getElementById('gif-search').oninput = Utils.debounce(async (e) => {
+                document.getElementById('gif-search').oninput = Utils.debounce(async (e) => {
                     const q = e.target.value.trim();
                     const resDiv = document.getElementById('gif-results');
                     if(!q) { resDiv.innerHTML = ''; return; }
@@ -1209,11 +1223,6 @@
                     }
                 }, 500);
 
-
-
-
-
-
                 // Context Menu & Global Closers
                 document.addEventListener('click', (e) => {
                     if(!e.target.closest('.context-menu') && !e.target.closest('.btn-msg-menu')) {
@@ -1236,7 +1245,10 @@
                 document.getElementById('cmenu-edit').onclick = () => { this.setupEdit(); document.getElementById('context-menu').classList.remove('active'); };
                 document.getElementById('cmenu-pin').onclick = () => { this.togglePin(); document.getElementById('context-menu').classList.remove('active'); };
                 document.getElementById('cmenu-resend').onclick = () => { this.resendMessage(); document.getElementById('context-menu').classList.remove('active'); };
-                document.getElementById('cmenu-delete').onclick = () => { this.deleteMessageLocally(); document.getElementById('context-menu').classList.remove('active'); };
+                
+                // NEW: Dual-Delete logic
+                document.getElementById('cmenu-delete-me').onclick = () => { this.deleteMessage(false); document.getElementById('context-menu').classList.remove('active'); };
+                document.getElementById('cmenu-delete-everyone').onclick = () => { this.deleteMessage(true); document.getElementById('context-menu').classList.remove('active'); };
 
                 // Lightbox Actions & Multi-Touch Zoom Handlers
                 document.getElementById('btn-close-lightbox').onclick = () => this.closeLightbox();
@@ -1638,6 +1650,15 @@
                 document.getElementById('chat-history').querySelectorAll('.message-wrap').forEach(e=>e.remove());
                 this.msgOffset = 0; this.msgCache.clear();
                 await this.loadChatChunk();
+
+                // Inject shared text into input if holding data from OS
+                if (this.pendingShareText) {
+                    const input = document.getElementById('message-input');
+                    input.value = this.pendingShareText;
+                    input.focus();
+                    input.style.height = input.scrollHeight + 'px';
+                    this.pendingShareText = null;
+                }
             }
 
             updateChatHeader() {
@@ -1661,7 +1682,10 @@
                 msgs.reverse().forEach(m => { this.msgCache.add(m.id); this.renderMsg(m, true); });
                 
                 if(this.msgOffset === 0) {
+                    // Snap to bottom instantly, and double-check after 250ms in case large images shift the layout
                     history.scrollTop = history.scrollHeight;
+                    setTimeout(() => { history.scrollTop = history.scrollHeight; }, 250);
+                    
                     const unread = msgs.filter(m => m.sender === 'them' && m.status !== 'read');
                     if(unread.length > 0 && this.net.isConnected(this.activeContact)) {
                         unread.forEach(m => { m.status = 'read'; this.store.saveMsg(m); this.net.send(this.activeContact, {type:'sys',act:'read',id:m.id}); });
@@ -1714,6 +1738,7 @@
                 const mnu = document.getElementById('context-menu');
                 document.getElementById('cmenu-edit').style.display = isMine ? 'flex' : 'none';
                 document.getElementById('cmenu-resend').style.display = (isMine && status === 'queued') ? 'flex' : 'none';
+                document.getElementById('cmenu-delete-everyone').style.display = isMine ? 'flex' : 'none';
                 document.getElementById('cmenu-pin-text').innerText = isPinned ? 'Unpin Message' : 'Pin Message';
                 
                 mnu.classList.add('active');
@@ -1748,11 +1773,17 @@
                 navigator.clipboard.writeText(m.text); this.ui.showToast("Message Copied!");
             }
 
-            async deleteMessageLocally() {
+            async deleteMessage(forEveryone) {
                 const m = await this.store.getMsg(this.contextState.targetId); if(!m) return;
-                m.isDeleted = true; m.text = ""; m.media = null; await this.store.saveMsg(m); this.renderMsg(m);
-                if(this.net.isConnected(this.activeContact)) this.net.send(this.activeContact, {type:'sys',act:'delete',id:m.id});
-                this.ui.showToast("Message Deleted.");
+                m.isDeleted = true; m.text = ""; m.media = null; 
+                await this.store.saveMsg(m); 
+                this.renderMsg(m);
+                
+                if(forEveryone && this.net.isConnected(this.activeContact)) {
+                    this.net.send(this.activeContact, {type:'sys',act:'delete',id:m.id});
+                }
+                
+                this.ui.showToast(forEveryone ? "Message Deleted Globally." : "Message Deleted Locally.");
             }
 
             async togglePin() {
