@@ -930,7 +930,7 @@
                 this.lbStartDist = 0;
             }
 
-            async start() {
+                        async start() {
                 await this.store.init();
                 this.myId = await this.store.get('myId');
                 if(!this.myId) { this.myId = Utils.generateId(); await this.store.set('myId', this.myId); }
@@ -941,14 +941,29 @@
                 
                 if('Notification' in window && Notification.permission === "default") Notification.requestPermission();
                 
-                // Catch OS Share Sheet data
+                // NEW: Catch OS Share Sheet data (POST from Service Worker Cache)
                 const params = new URLSearchParams(window.location.search);
-                const sharedTitle = params.get('title');
-                const sharedText = params.get('text');
-                const sharedUrl = params.get('url');
-                
-                if (sharedTitle || sharedText || sharedUrl) {
-                    this.pendingShareText = [sharedTitle, sharedText, sharedUrl].filter(Boolean).join('\n');
+                if (params.get('shared') === '1') {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    try {
+                        const cache = await caches.open('shared-media');
+                        const textRes = await cache.match('/shared-text');
+                        const fileRes = await cache.match('/shared-file');
+                        
+                        if (textRes) this.pendingShareText = await textRes.text();
+                        if (fileRes) {
+                            const blob = await fileRes.blob();
+                            const fileName = fileRes.headers.get('X-Filename') || 'shared_file';
+                            this.pendingShareFile = new File([blob], fileName, { type: blob.type });
+                        }
+                        
+                        if (this.pendingShareText || this.pendingShareFile) {
+                            setTimeout(() => this.ui.showToast("Select a contact to share with"), 1000);
+                        }
+                    } catch(e) { console.error("Error loading shared media", e); }
+                } else if (params.get('title') || params.get('text') || params.get('url')) {
+                    // Fallback for standard GET
+                    this.pendingShareText = [params.get('title'), params.get('text'), params.get('url')].filter(Boolean).join('\n');
                     window.history.replaceState({}, document.title, window.location.pathname);
                     setTimeout(() => this.ui.showToast("Select a contact to share with"), 1000);
                 }
@@ -966,6 +981,7 @@
                 const obs = new IntersectionObserver((e) => { if(e[0].isIntersecting && !this.isLoadingChunk && this.msgOffset > 0) this.loadChatChunk(); });
                 obs.observe(document.getElementById('chunk-loader'));
             }
+
 
             async resetIdentity() {
                 this.myId = Utils.generateId(); await this.store.set('myId', this.myId);
@@ -1651,17 +1667,42 @@
                 this.msgOffset = 0; this.msgCache.clear();
                 await this.loadChatChunk();
 
-                // Inject shared text into input if holding data from OS
-                if (this.pendingShareText) {
-                    const input = document.getElementById('message-input');
-                    input.value = this.pendingShareText;
-                    input.focus();
-                    input.style.height = input.scrollHeight + 'px';
+                                // NEW: Inject shared text/file into input if holding data from OS
+                if (this.pendingShareText || this.pendingShareFile) {
+                    
+                    // Directly bypass the upload button and process the cached file
+                    if (this.pendingShareFile) {
+                        const file = this.pendingShareFile;
+                        setTimeout(async () => {
+                            if (file.type.startsWith('video/')) {
+                                const b64 = await Utils.fileToBase64(file);
+                                this.sendOutbound({ type: 'video', data: b64, name: file.name });
+                            } else if (file.type.startsWith('image/')) {
+                                const b64 = await Utils.compressImage(file);
+                                this.sendOutbound({ type: 'image', data: b64, name: file.name });
+                            } else {
+                                const b64 = await Utils.fileToBase64(file);
+                                this.sendOutbound({ type: 'file', data: b64, name: file.name });
+                            }
+                        }, 500);
+                    }
+                    
+                    // Populate text input
+                    if (this.pendingShareText) {
+                        const input = document.getElementById('message-input');
+                        input.value = this.pendingShareText;
+                        input.focus();
+                        input.style.height = input.scrollHeight + 'px';
+                    }
+                    
+                    // Clear the pending state and wipe the temporary cache
                     this.pendingShareText = null;
+                    this.pendingShareFile = null;
+                    caches.open('shared-media').then(c => { c.delete('/shared-text'); c.delete('/shared-file'); });
                 }
             }
 
-            updateChatHeader() {
+                        updateChatHeader() {
                 if(!this.activeContact) return;
                 const isOnline = this.net.isConnected(this.activeContact);
                 document.getElementById('header-status-dot').className = `status-indicator ${isOnline?'online':''}`;
@@ -1674,6 +1715,7 @@
             }
 
             async loadChatChunk() {
+
                 this.isLoadingChunk = true; document.getElementById('chunk-loader').style.display = 'block';
                 const msgs = await this.store.getChatChunk(this.activeContact, 50, this.msgOffset);
                 if(msgs.length === 0) { document.getElementById('chunk-loader').style.display = 'none'; return; }
