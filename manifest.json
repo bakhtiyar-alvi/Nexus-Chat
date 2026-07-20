@@ -12,15 +12,22 @@
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
-   }
+    }
   ],
   "share_target": {
-    "action": "/",
-    "method": "GET",
+    "action": "./index.html",
+    "method": "POST",
+    "enctype": "multipart/form-data",
     "params": {
       "title": "title",
       "text": "text",
-      "url": "url"
+      "url": "url",
+      "files": [
+        {
+          "name": "media",
+          "accept": ["image/*", "video/*", "audio/*", "*/*"]
+        }
+      ]
     }
   }
 }
