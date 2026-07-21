@@ -1640,7 +1640,7 @@
                 if(msgs.length < 50) document.getElementById('chunk-loader').style.display = 'none';
             }
 
-            async sendOutbound(mediaObj = null) {
+                        async sendOutbound(mediaObj = null) {
                 const inp = document.getElementById('message-input'); const text = inp.innerText.trim(); if(!text && !mediaObj) return;
                 if(this.contextState.mode === 'edit') {
                     const m = await this.store.getMsg(this.contextState.targetId);
@@ -1649,13 +1649,21 @@
                     const isConn = this.net.isConnected(this.activeContact);
                     const m = { id: Utils.uuid(), friendId: this.activeContact, sender: 'me', text: text, media: mediaObj, timestamp: Date.now(), status: isConn ? 'sending' : 'queued', isDeleted: false, isEdited: false, isPinned: false, replyTo: this.contextState.mode === 'reply' ? this.contextState.targetId : null, reactions: [] };
                     await this.store.saveMsg(m); this.msgCache.add(m.id); this.renderMsg(m);
+                    
                     if(isConn) {
                         const success = await this.net.send(this.activeContact, {type:'msg', payload:m}, (pct) => { const pb = document.getElementById(`prog-bar-${m.id}`); const pt = document.getElementById(`prog-txt-${m.id}`); if(pb) pb.style.width = `${pct}%`; if(pt) pt.innerText = `${pct}%`; });
                         if(success) { m.status = 'sent'; await this.store.saveMsg(m); this.renderMsg(m); }
                     } else {
-                        // --- NEW: Trigger Push Notification if peer is offline ---
+                        // --- DIAGNOSTIC PUSH BLOCK ---
+                        this.ui.showToast("Debug: Peer offline, checking token...");
                         const cInfo = await this.store.getContact(this.activeContact);
-                        if (cInfo && cInfo.fcmToken) {
+                        
+                        if (!cInfo) {
+                            this.ui.showToast("Debug Error: Contact not found in database.");
+                        } else if (!cInfo.fcmToken) {
+                            this.ui.showToast("Debug Error: No FCM Token for this friend! Keep both phones open to sync.");
+                        } else {
+                            this.ui.showToast("Debug: Token found! Hitting Vercel...");
                             fetch('https://nexus-chat-three-ashen.vercel.app/api/push', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -1664,13 +1672,23 @@
                                     title: 'Nexus Secure',
                                     body: 'New encrypted message'
                                 })
-                            }).catch(err => console.log('Push failed:', err));
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    this.ui.showToast("Debug Success: Vercel fired push!");
+                                } else {
+                                    this.ui.showToast("Debug API Error: " + JSON.stringify(data));
+                                }
+                            })
+                            .catch(err => this.ui.showToast('Debug Fetch Error: ' + err.message));
                         }
                         // ---------------------------------------------------------
                     }
                 }
                 inp.innerHTML = ''; this.clearActionContext();
             }
+
 
             openContextMenu(e, id, isMine, status, isPinned) {
                 e.stopPropagation();
