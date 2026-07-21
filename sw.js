@@ -25,8 +25,8 @@ messaging.onBackgroundMessage((payload) => {
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Cache bumped to 9.1 to ensure GBoard changes take effect immediately
-const CACHE_NAME = 'nexus-secure-v11';
+// Cache bumped to 11.1 to ensure GBoard changes take effect immediately
+const CACHE_NAME = 'nexus-secure-v11.1';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
