@@ -1,6 +1,5 @@
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin securely using Environment Variables
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert({
@@ -12,7 +11,6 @@ if (!admin.apps.length) {
 }
 
 export default async function handler(req, res) {
-    // CORS headers for your frontend
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,POST');
@@ -22,28 +20,18 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
     const { token, title, body } = req.body;
-
     if (!token) return res.status(400).json({ error: 'Missing FCM token' });
 
     try {
+        // DATA-ONLY payload to trigger the raw SW 'push' event
         const message = {
             token: token,
-            // Native block forces OS to display it without waking up the Service Worker
-            notification: {
+            data: {
                 title: title || 'Nexus Secure',
-                body: body || 'New secure message'
+                body: body || 'New secure message',
+                url: './index.html'
             },
-            // WebPush specifics required by Android Chrome
-            webpush: {
-                headers: {
-                    Urgency: 'high' // Bypasses Android Doze / Battery Saver
-                },
-                notification: {
-                    // Absolute URL required. Using a reliable public CDN lock icon for safety.
-                    icon: 'https://cdn-icons-png.flaticon.com/512/1828/1828302.png',
-                    requireInteraction: true
-                }
-            }
+            android: { priority: 'high' }
         };
 
         const response = await admin.messaging().send(message);
