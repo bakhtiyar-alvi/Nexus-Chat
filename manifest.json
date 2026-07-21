@@ -4,8 +4,8 @@
   "description": "End-to-End Encrypted P2P Mesh Messenger",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#141418",
-  "theme_color": "#141418",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "logo.svg",
