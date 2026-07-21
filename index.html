@@ -13,10 +13,13 @@
     <link rel="apple-touch-icon" href="logo.svg">
     
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- Firebase App & Messaging SDKs (Compat version for Vanilla JS) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
 
     <style>
         /* ==========================================================================
-           DYNAMIC CSS VARIABLES & THEMING (RESTORED)
+           DYNAMIC CSS VARIABLES & THEMING
            ========================================================================== */
         :root {
             --bg-base: #141418; --bg-panel: #1E1F24; --bg-sidebar-item: rgba(0,0,0,0.2);
@@ -46,7 +49,7 @@
         input, textarea { font-family: inherit; font-size: inherit; }
 
         /* ==========================================================================
-           WINDOW CONTROLS & OVERLAY (RESTORED DESKTOP SUPPORT)
+           WINDOW CONTROLS & OVERLAY (DESKTOP SUPPORT)
            ========================================================================== */
         .glass { background: var(--bg-panel); backdrop-filter: blur(var(--blur-intensity)); border: 1px solid var(--border-light); box-shadow: var(--shadow-soft); opacity: var(--window-opacity); }
         #app-window { position: absolute; width: 900px; height: 600px; min-width: 600px; min-height: 400px; border-radius: var(--radius-window); display: flex; flex-direction: column; overflow: hidden; transition: opacity 0.2s, transform 0.2s; opacity: 0; transform: scale(0.95); z-index: 10; background: var(--bg-base); }
@@ -210,7 +213,7 @@
         .input-pill { flex: 1; background: var(--bg-input); border: 1px solid var(--border-light); border-radius: 24px; display: flex; align-items: flex-end; padding: 4px 8px; box-shadow: var(--shadow-soft); transition: 0.2s;}
         .input-pill:focus-within { border-color: var(--accent-cyan); }
         
-                /* GBOARD FIX: Restored ARIA roles and data-placeholder */
+        /* GBOARD FIX: Restored ARIA roles and data-placeholder */
         .chat-input { 
             flex: 1; 
             background: transparent; 
@@ -235,7 +238,6 @@
         }
         .chat-input:focus { outline: none; }
 
- 
         .btn-inline { width: 36px; height: 36px; border-radius: 50%; color: var(--text-muted); flex-shrink: 0; display:flex; align-items:center; justify-content:center; cursor: pointer; transition: 0.2s;}
         .btn-inline:hover { color: var(--accent-cyan); background: rgba(255,255,255,0.05); }
         .btn-send-main { width: 44px; height: 44px; border-radius: 50%; background: var(--accent-cyan); color: #000; flex-shrink: 0; box-shadow: 0 4px 15px rgba(0, 229, 255, 0.3); transition: transform 0.2s;}
@@ -383,7 +385,7 @@
                             <button class="btn-inline" id="btn-voice-call" style="display:none;"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></button>
                             <button class="btn-inline" id="btn-video-call" style="display:none;"><svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></button>
                             <button class="btn-inline" id="btn-search-chat" title="Search Chat"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
-                            <button class="btn-inline" id="btn-clear-chat" title="Clear Chat Locally" style="color:#FFBD2E;"><svg viewBox="0 0 24 24"><path d="M15 4V3H9v1H4v2h1v13c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V6h1V4h-5zm2 15H7V6h10v13z"/></svg></button>
+                            <button class="btn-inline" id="btn-clear-chat" title="Clear Chat locally" style="color:#FFBD2E;"><svg viewBox="0 0 24 24"><path d="M15 4V3H9v1H4v2h1v13c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V6h1V4h-5zm2 15H7V6h10v13z"/></svg></button>
                             <button class="btn-inline" id="btn-nuke-chat" title="Nuke Chat Globally" style="color:#FF5F56;"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg></button>
                         </div>
                     </div>
@@ -427,9 +429,9 @@
                         <div class="input-pill" id="input-row-main">
                             <button class="btn-inline" id="btn-attach" title="Attach"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
                             <input type="file" id="file-input" hidden>
-                            <!-- GBOARD FIX: ContentEditable div instead of textarea -->
+                            
                             <!-- GBOARD FIX: Exact WhatsApp Web ARIA configuration to force Rich Input -->
-<div class="chat-input" id="message-input" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" dir="auto" tabindex="0" data-placeholder="Type a secure message..."></div>
+                            <div class="chat-input" id="message-input" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" dir="auto" tabindex="0" data-placeholder="Type a secure message..."></div>
 
                             <button class="btn-inline" id="btn-open-gif"><svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM8.5 8c.83 0 1.5.67 1.5 1.5S9.33 11 8.5 11 7 10.33 7 9.5 7.67 8 8.5 8zM12 18c-2.28 0-4.22-1.66-5-4h10c-.78 2.34-2.72 4-5 4zm3.5-7c-.83 0-1.5-.67-1.5-1.5S14.67 8 15.5 8s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg></button>
                             <button class="btn-inline" id="btn-mic"><svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></button>
@@ -625,7 +627,7 @@
                 return s;
             },
             fileToBase64: (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); }),
-                        compressImage: (file, maxWidth = 1280) => new Promise((resolve, reject) => {
+            compressImage: (file, maxWidth = 1280) => new Promise((resolve, reject) => {
                 // GBOARD FIX: Bypass canvas compression if the file is a GIF so it doesn't freeze!
                 if(!file.type.startsWith('image/') || file.type === 'image/gif') return Utils.fileToBase64(file).then(resolve).catch(reject);
                 const img = new Image();
@@ -640,7 +642,6 @@
                 };
                 img.onerror = reject; img.src = URL.createObjectURL(file);
             }),
-
             fetchLinkPreview: async (url) => {
                 try {
                     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
@@ -1006,7 +1007,7 @@
                 this.lbScale = 1; this.lbPanX = 0; this.lbPanY = 0; this.lbPanning = false; this.lbStartX = 0; this.lbStartY = 0; this.lbStartDist = 0;
             }
 
-                        async start() {
+            async start() {
                 await this.store.init();
                 this.myId = await this.store.get('myId');
                 if(!this.myId) { this.myId = Utils.generateId(); await this.store.set('myId', this.myId); }
@@ -1017,9 +1018,42 @@
                 
                 if('Notification' in window && Notification.permission === "default") Notification.requestPermission();
 
+                // --- FIREBASE INITIALIZATION ---
+                if (typeof firebase !== 'undefined') {
+                    try {
+                        firebase.initializeApp({
+                            apiKey: "AIzaSyBwkYX1R5KQ6wOiXzwShO_NLs18p70-fBg",
+                            authDomain: "nexus-chat-307be.firebaseapp.com",
+                            projectId: "nexus-chat-307be",
+                            storageBucket: "nexus-chat-307be.firebasestorage.app",
+                            messagingSenderId: "847360273462",
+                            appId: "1:847360273462:web:7ecd3aab0f2b5bbf4dbc97"
+                        });
+                        
+                        const messaging = firebase.messaging();
+                        const permission = await Notification.requestPermission();
+                        
+                        if (permission === 'granted') {
+                            const swRegistration = await navigator.serviceWorker.ready;
+                            const token = await messaging.getToken({ 
+                                vapidKey: 'BMWDB-ZjsqTr98orZmQpmlTZM-LrmBd8sWWQW1x09fXUJzVfm2uA2jk0I867qSiWh3qE766W7CDwaZek--es3gY',
+                                serviceWorkerRegistration: swRegistration
+                            });
+                            
+                            if (token) {
+                                await this.store.set('fcmToken', token);
+                                console.log("FCM Ready! Token:", token);
+                            }
+                        }
+                    } catch (err) {
+                        console.warn("Firebase failed to initialize:", err);
+                    }
+                }
+                // --- END FIREBASE ---
+
                 window.history.pushState({ page: 'home' }, "");
 
-                // RESTORED: Catch OS Share Sheet data (POST from Service Worker Cache)
+                // RESTORED: Catch OS Share Sheet data
                 const params = new URLSearchParams(window.location.search);
                 if (params.get('shared') === '1') {
                     window.history.replaceState({}, document.title, window.location.pathname);
@@ -1040,7 +1074,6 @@
                         }
                     } catch(e) { console.error("Error loading shared media", e); }
                 } else if (params.get('title') || params.get('text') || params.get('url')) {
-                    // Fallback for standard GET
                     this.pendingShareText = [params.get('title'), params.get('text'), params.get('url')].filter(Boolean).join('\n');
                     window.history.replaceState({}, document.title, window.location.pathname);
                     setTimeout(() => this.ui.showToast("Select a contact to share with"), 1000);
@@ -1053,13 +1086,19 @@
                 setInterval(async () => {
                     this.connectToAllFriends();
                     const contacts = await this.store.getContacts();
-                    for(let c of contacts) { this.net.connect(c.id); if(this.net.isConnected(c.id)) this.flushOutbox(c.id); }
+                    const myFcmToken = await this.store.get('fcmToken', null);
+                    for(let c of contacts) { 
+                        this.net.connect(c.id); 
+                        if(this.net.isConnected(c.id)) {
+                            this.flushOutbox(c.id);
+                            if (myFcmToken) this.net.send(c.id, { type: 'sys', act: 'fcm_sync', token: myFcmToken });
+                        } 
+                    }
                 }, 10000);
                 
                 const obs = new IntersectionObserver((e) => { if(e[0].isIntersecting && !this.isLoadingChunk && this.msgOffset > 0) this.loadChatChunk(); });
                 obs.observe(document.getElementById('chunk-loader'));
             }
-
 
             async resetIdentity() {
                 this.myId = Utils.generateId(); await this.store.set('myId', this.myId);
@@ -1359,6 +1398,13 @@
                             if (this.activeContact === peerId) { document.getElementById('header-name').innerText = c.name; const av = document.getElementById('header-avatar'); if (c.avatar) { av.style.backgroundImage = `url(${c.avatar})`; av.innerText = ''; av.style.color = 'transparent'; } else { av.style.backgroundImage = 'none'; av.innerText = c.name.charAt(0).toUpperCase(); av.style.color = '#fff'; } this.updateChatHeader(); }
                         }
                     }
+                    else if (d.act === 'fcm_sync') {
+                        const c = await this.store.getContact(peerId);
+                        if (c) {
+                            c.fcmToken = d.token;
+                            await this.store.saveContact(c);
+                        }
+                    }
                     else if (d.act === 'end_call') { this.endCall(false); }
                     else if (d.act === 'nuke') { await this.store.clearHistory(peerId); if(this.activeContact === peerId) { document.getElementById('chat-history').querySelectorAll('.message-wrap').forEach(e=>e.remove()); this.ui.showToast("Chat history was nuked globally."); } }
                 }
@@ -1368,7 +1414,24 @@
             closeLightbox() { document.getElementById('lightbox-overlay').classList.remove('show'); setTimeout(() => { document.getElementById('lightbox-overlay').style.display = 'none'; document.getElementById('lightbox-img').src = ''; this.lbScale = 1; this.lbPanX = 0; this.lbPanY = 0; document.getElementById('lightbox-img').style.transform = `translate(0px, 0px) scale(1)`; }, 200); }
 
             async startCall(isVideo) {
-                if(!this.activeContact || !this.net.isConnected(this.activeContact)) return this.ui.showToast("Contact offline.");
+                if(!this.activeContact || !this.net.isConnected(this.activeContact)) {
+                    // --- NEW: Send wake-up ping for calls ---
+                    this.store.getContact(this.activeContact).then(cInfo => {
+                        if (cInfo && cInfo.fcmToken) {
+                            fetch('https://nexus-chat-three-ashen.vercel.app/api/push', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    token: cInfo.fcmToken,
+                                    title: 'Nexus Secure',
+                                    body: isVideo ? 'Incoming Video Call...' : 'Incoming Voice Call...'
+                                })
+                            }).catch(err => {});
+                        }
+                    });
+                    return this.ui.showToast("Contact offline. Wake-up ping sent!");
+                    // ----------------------------------------
+                }
                 try {
                     this.camFacingMode = 'user';
                     const stream = await navigator.mediaDevices.getUserMedia({video: isVideo ? { facingMode: this.camFacingMode } : false, audio: true});
@@ -1589,6 +1652,21 @@
                     if(isConn) {
                         const success = await this.net.send(this.activeContact, {type:'msg', payload:m}, (pct) => { const pb = document.getElementById(`prog-bar-${m.id}`); const pt = document.getElementById(`prog-txt-${m.id}`); if(pb) pb.style.width = `${pct}%`; if(pt) pt.innerText = `${pct}%`; });
                         if(success) { m.status = 'sent'; await this.store.saveMsg(m); this.renderMsg(m); }
+                    } else {
+                        // --- NEW: Trigger Push Notification if peer is offline ---
+                        const cInfo = await this.store.getContact(this.activeContact);
+                        if (cInfo && cInfo.fcmToken) {
+                            fetch('https://nexus-chat-three-ashen.vercel.app/api/push', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    token: cInfo.fcmToken,
+                                    title: 'Nexus Secure',
+                                    body: 'New encrypted message'
+                                })
+                            }).catch(err => console.log('Push failed:', err));
+                        }
+                        // ---------------------------------------------------------
                     }
                 }
                 inp.innerHTML = ''; this.clearActionContext();
