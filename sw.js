@@ -1,4 +1,32 @@
-const CACHE_NAME = 'nexus-secure-v10.1';
+importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+    apiKey: "AIzaSyBwkYX1R5KQ6wOiXzwShO_NLs18p70-fBg",
+    authDomain: "nexus-chat-307be.firebaseapp.com",
+    projectId: "nexus-chat-307be",
+    storageBucket: "nexus-chat-307be.firebasestorage.app",
+    messagingSenderId: "847360273462",
+    appId: "1:847360273462:web:7ecd3aab0f2b5bbf4dbc97"
+});
+
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage((payload) => {
+    console.log("Background push received:", payload);
+    const notificationTitle = payload.data?.title || payload.notification?.title || 'Nexus Secure';
+    const notificationOptions = {
+        body: payload.data?.body || payload.notification?.body || 'You have a new secure message',
+        icon: './logo.svg',
+        badge: './logo.svg',
+        data: { url: './index.html' }
+    };
+
+    self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+// Cache bumped to 9.1 to ensure GBoard changes take effect immediately
+const CACHE_NAME = 'nexus-secure-v11';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -17,7 +45,6 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cache) => {
-                    // Do not delete our active cache OR the temporary shared-media memory cache
                     if (cache !== CACHE_NAME && cache !== 'shared-media') {
                         return caches.delete(cache);
                     }
@@ -64,5 +91,17 @@ self.addEventListener('fetch', (event) => {
         caches.match(event.request).then((response) => {
             return response || fetch(event.request);
         }).catch(() => caches.match('./index.html'))
+    );
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+            for (const client of clientList) {
+                if (client.url && 'focus' in client) return client.focus();
+            }
+            if (clients.openWindow) return clients.openWindow(event.notification.data.url);
+        })
     );
 });
