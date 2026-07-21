@@ -45,8 +45,8 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// Cache bumped to 11.2 to force Chrome to delete the old Firebase worker
-const CACHE_NAME = 'nexus-secure-v11.2';
+// Cache bumped to 11.3 to force Chrome to delete the old Firebase worker
+const CACHE_NAME = 'nexus-secure-v11.3';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
