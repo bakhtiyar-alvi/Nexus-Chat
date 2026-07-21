@@ -6,14 +6,12 @@ if (!admin.apps.length) {
         credential: admin.credential.cert({
             projectId: process.env.FIREBASE_PROJECT_ID,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            // .replace() is required to format the line breaks in the key correctly
             privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
         }),
     });
 }
 
 export default async function handler(req, res) {
-    // Enable CORS so your GitHub Pages frontend can talk to this endpoint
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,POST');
@@ -27,11 +25,14 @@ export default async function handler(req, res) {
     if (!token) return res.status(400).json({ error: 'Missing FCM token' });
 
     try {
-        // Construct the silent data payload
+        // FIXED: Using OS-level 'notification' block instead of just 'data'
+        // This forces Android/iOS to natively display the alert even if the app is force-closed
         const message = {
-            data: {
+            notification: {
                 title: title || 'Nexus Secure',
-                body: body || 'New secure message',
+                body: body || 'New secure message'
+            },
+            data: {
                 url: url || './index.html'
             },
             token: token
