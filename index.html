@@ -998,7 +998,7 @@
                 this.lbScale = 1; this.lbPanX = 0; this.lbPanY = 0; this.lbPanning = false; this.lbStartX = 0; this.lbStartY = 0; this.lbStartDist = 0;
             }
 
-            async start() {
+                        async start() {
                 await this.store.init();
                 this.myId = await this.store.get('myId');
                 if(!this.myId) { this.myId = Utils.generateId(); await this.store.set('myId', this.myId); }
@@ -1010,6 +1010,33 @@
                 if('Notification' in window && Notification.permission === "default") Notification.requestPermission();
 
                 window.history.pushState({ page: 'home' }, "");
+
+                // RESTORED: Catch OS Share Sheet data (POST from Service Worker Cache)
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('shared') === '1') {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    try {
+                        const cache = await caches.open('shared-media');
+                        const textRes = await cache.match('/shared-text');
+                        const fileRes = await cache.match('/shared-file');
+                        
+                        if (textRes) this.pendingShareText = await textRes.text();
+                        if (fileRes) {
+                            const blob = await fileRes.blob();
+                            const fileName = fileRes.headers.get('X-Filename') || 'shared_file';
+                            this.pendingShareFile = new File([blob], fileName, { type: blob.type });
+                        }
+                        
+                        if (this.pendingShareText || this.pendingShareFile) {
+                            setTimeout(() => this.ui.showToast("Select a contact to share with"), 1000);
+                        }
+                    } catch(e) { console.error("Error loading shared media", e); }
+                } else if (params.get('title') || params.get('text') || params.get('url')) {
+                    // Fallback for standard GET
+                    this.pendingShareText = [params.get('title'), params.get('text'), params.get('url')].filter(Boolean).join('\n');
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    setTimeout(() => this.ui.showToast("Select a contact to share with"), 1000);
+                }
 
                 this.bindEvents();
                 this.net.init(this.myId);
@@ -1024,6 +1051,7 @@
                 const obs = new IntersectionObserver((e) => { if(e[0].isIntersecting && !this.isLoadingChunk && this.msgOffset > 0) this.loadChatChunk(); });
                 obs.observe(document.getElementById('chunk-loader'));
             }
+
 
             async resetIdentity() {
                 this.myId = Utils.generateId(); await this.store.set('myId', this.myId);
