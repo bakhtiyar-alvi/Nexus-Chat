@@ -1484,10 +1484,18 @@
                 } catch(e) { this.ui.showToast("Camera switch failed."); }
             }
 
-            endCall(broadcast = true) {
-                if(this.currentCall) { this.currentCall.close(); if(broadcast && this.currentCall.peer) this.net.send(this.currentCall.peer, {type: 'sys', act: 'end_call'}); }
+                        endCall(broadcast = true) {
+                // FIXED: Null safety check to prevent app crashes
+                if(this.currentCall) { 
+                    const peerId = this.currentCall.peer;
+                    this.currentCall.close(); 
+                    if(broadcast && peerId) {
+                        try { this.net.send(peerId, {type: 'sys', act: 'end_call'}); } catch(e) {}
+                    }
+                }
                 if(this.localStream) this.localStream.getTracks().forEach(t => t.stop());
                 this.currentCall = null; this.localStream = null; this.ui.hideModal('call-overlay');
+
                 document.getElementById('remote-video').style.display = 'none'; document.getElementById('local-video').style.display = 'none';
                 document.getElementById('btn-answer-call').style.display = 'none'; document.getElementById('btn-switch-cam').style.display = 'none';
                 document.getElementById('remote-video').srcObject = null; document.getElementById('local-video').srcObject = null;
