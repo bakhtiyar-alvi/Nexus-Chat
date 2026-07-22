@@ -47,8 +47,8 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// Cache bumped to v15.0 to pre-cache offline QR Code libraries
-const CACHE_NAME = 'nexus-secure-v15.0';
+// Cache bumped to v16.0 to force cache renewal
+const CACHE_NAME = 'nexus-secure-v16.0';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -81,7 +81,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // 1. Intercept OS File Sharing (POST requests from Android Share Sheet)
+    // Intercept OS File Sharing
     if (event.request.method === 'POST' && event.request.url.includes('index.html')) {
         event.respondWith((async () => {
             try {
@@ -102,14 +102,12 @@ self.addEventListener('fetch', (event) => {
 
                 return Response.redirect('./index.html?shared=1', 303);
             } catch (error) {
-                console.error('Share target failed:', error);
                 return Response.redirect('./index.html', 303);
             }
         })());
         return;
     }
 
-    // 2. Standard Offline Caching (GET requests)
     event.respondWith(
         caches.match(event.request).then((response) => {
             return response || fetch(event.request);
