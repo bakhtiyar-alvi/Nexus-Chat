@@ -6,7 +6,6 @@ self.addEventListener('push', function(event) {
     try {
         if (event.data) {
             const payload = event.data.json();
-            // FCM v1 nests data payloads inside a .data object
             if (payload.data) {
                 data.title = payload.data.title || data.title;
                 data.body = payload.data.body || data.body;
@@ -27,7 +26,7 @@ self.addEventListener('push', function(event) {
         badge: './logo.svg',
         vibrate: [200, 100, 200, 100, 200],
         tag: 'nexus-message',
-        renotify: true, // Forces phone to vibrate/alert even if a previous notification is unread
+        renotify: true,
         data: { url: data.url }
     };
 
@@ -48,8 +47,8 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// Cache bumped to v13.0 to purge old client caches and load latest index.html features
-const CACHE_NAME = 'nexus-secure-v13.0';
+// Cache bumped to v14.0 to pre-cache offline QR Code libraries
+const CACHE_NAME = 'nexus-secure-v14.0';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -57,7 +56,9 @@ const ASSETS_TO_CACHE = [
     './logo.svg',
     'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js',
     'https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js',
-    'https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js'
+    'https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -90,18 +91,15 @@ self.addEventListener('fetch', (event) => {
 
                 const cache = await caches.open('shared-media');
                 
-                // Store the file and preserve its original name in the headers
                 if (media && media.size > 0) {
                     await cache.put('/shared-file', new Response(media, { 
                         headers: { 'Content-Type': media.type, 'X-Filename': media.name } 
                     }));
                 } else { await cache.delete('/shared-file'); }
                 
-                // Store accompanying text/URL
                 if (text) { await cache.put('/shared-text', new Response(text)); } 
                 else { await cache.delete('/shared-text'); }
 
-                // Redirect to the app with trigger flag
                 return Response.redirect('./index.html?shared=1', 303);
             } catch (error) {
                 console.error('Share target failed:', error);
