@@ -472,7 +472,7 @@
             </div>
             
             <div id="lan-step-select" style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
-                <p style="font-size:12px; color:var(--text-muted); line-height:1.4;">Pair directly over local Wi-Fi without internet using fast compressed QR codes.</p>
+                <p style="font-size:12px; color:var(--text-muted); line-height:1.4;">Pair directly over local Wi-Fi without internet using fast QR code exchange.</p>
                 <button class="btn-primary" id="btn-lan-host">Option A: Host Connection (Show QR)</button>
                 <button class="btn-outline" id="btn-lan-join">Option B: Join Connection (Scan QR)</button>
             </div>
@@ -481,7 +481,7 @@
             <div id="lan-step-host" style="display:none; flex-direction:column; align-items:center; gap:12px;">
                 <div style="font-size:12px; font-weight:bold; color:var(--accent-cyan);">1. Have your friend scan this QR Code</div>
                 <div id="lan-qrcode-offer" style="background:#fff; padding:12px; border-radius:12px; min-width:200px; min-height:200px; display:flex; align-items:center; justify-content:center;">Generating QR...</div>
-                <button class="btn-outline" id="btn-copy-offer-str" style="font-size:11px; width:100%;">Copy Compact Host Code</button>
+                <button class="btn-outline" id="btn-copy-offer-str" style="font-size:11px; width:100%;">Copy Host Code Text</button>
                 <hr style="width:100%; border-color:var(--border-light); margin:5px 0;">
                 <div style="font-size:12px; font-weight:bold; color:var(--accent-cyan);">2. Scan your friend's Answer QR Code</div>
                 <button class="btn-primary" id="btn-scan-answer-qr" style="width:100%;">Scan Answer QR</button>
@@ -491,7 +491,7 @@
             <!-- Joiner View -->
             <div id="lan-step-join" style="display:none; flex-direction:column; align-items:center; gap:12px;">
                 <div style="font-size:12px; font-weight:bold; color:var(--accent-cyan);">Scan Host's Connection QR</div>
-                <div id="lan-qr-reader" style="width:100%; max-width:320px; border-radius:12px; overflow:hidden; display:none;"></div>
+                <div id="lan-qr-reader" style="width:100%; max-width:320px; min-height:250px; border-radius:12px; overflow:hidden; display:none;"></div>
                 <button class="btn-primary" id="btn-start-join-scan" style="width:100%;">Open Camera Scanner</button>
                 <button class="btn-outline" id="btn-paste-offer-str" style="width:100%; font-size:11px;">Or Paste Host Code</button>
                 
@@ -504,7 +504,7 @@
 
             <!-- Manual Text Paste Dialog -->
             <div id="lan-step-paste" style="display:none; flex-direction:column; gap:10px;">
-                <textarea class="code-box" id="lan-paste-input" rows="4" placeholder="Paste Compact Code here..."></textarea>
+                <textarea class="code-box" id="lan-paste-input" rows="5" placeholder="Paste Code string here..."></textarea>
                 <button class="btn-primary" id="btn-lan-paste-submit">Process Code</button>
             </div>
         </div>
@@ -959,7 +959,6 @@
                 }
             }
 
-            // FIXED: Complete packet assembly routing for offline LAN channels (Fixes offline images, audio & video!)
             handleIncomingExternalData(peerId, d) {
                 try {
                     if (d._chunk) {
@@ -1125,7 +1124,7 @@
             }
         }
 
-        // --- OFFLINE LAN WEBRTC PAIRING MANAGER (WITH NATIVE STREAM DEFLATE COMPRESSION) ---
+        // --- OFFLINE LAN WEBRTC PAIRING MANAGER (FAIL-SAFE DUAL ENCODER) ---
         class LANPairManager {
             constructor(app) {
                 this.app = app;
@@ -1137,24 +1136,26 @@
                 this.targetPasteMode = null;
             }
 
-            // Native Stream Pipeline Compression (Shrinks SDP by ~80% for instant low-density QR scanning)
-            async compressString(str) {
+            // Universal Fail-Safe Payload Encoder (Works on both QR Scan and Manual Paste)
+            encodePayload(obj) {
                 try {
-                    const stream = new Blob([str]).stream().pipeThrough(new CompressionStream('deflate-raw'));
-                    const buffer = await new Response(stream).arrayBuffer();
-                    let binary = ''; const bytes = new Uint8Array(buffer);
-                    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-                    return btoa(binary);
-                } catch(e) { return str; } // Fallback to raw string if unsupported
+                    const json = JSON.stringify(obj);
+                    return btoa(unescape(encodeURIComponent(json)));
+                } catch(e) {
+                    return JSON.stringify(obj);
+                }
             }
 
-            async decompressString(b64) {
+            decodePayload(str) {
+                const clean = str.trim().replace(/[\r\n\s]/g, '');
                 try {
-                    const binary = atob(b64); const bytes = new Uint8Array(binary.length);
-                    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-                    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-                    return await new Response(stream).text();
-                } catch(e) { return b64; } // Fallback
+                    // Try decoding Base64 string first
+                    const json = decodeURIComponent(escape(atob(clean)));
+                    return JSON.parse(json);
+                } catch(e) {
+                    // Fallback if raw JSON was pasted
+                    return JSON.parse(clean);
+                }
             }
 
             createPeerConnection() {
@@ -1178,21 +1179,18 @@
                             }
                         };
                         this.pc.addEventListener('icegatheringstatechange', check);
-                        setTimeout(res, 1500);
+                        setTimeout(res, 1200);
                     }
                 });
 
-                // Compact & Compress Offer Payload
                 const payload = { i: this.app.myId, t: this.pc.localDescription.type, s: this.pc.localDescription.sdp };
-                const jsonStr = JSON.stringify(payload);
-                this.currentOfferPayload = await this.compressString(jsonStr);
+                this.currentOfferPayload = this.encodePayload(payload);
                 return this.currentOfferPayload;
             }
 
-            async handleHostScanAnswer(compressedAnswerStr) {
+            async handleHostScanAnswer(answerStr) {
                 try {
-                    const decompressed = await this.decompressString(compressedAnswerStr);
-                    const data = JSON.parse(decompressed);
+                    const data = this.decodePayload(answerStr);
                     const peerId = data.i || data.id;
                     const sdpType = data.t || (data.sdp ? data.sdp.type : 'answer');
                     const sdpString = data.s || (data.sdp ? data.sdp.sdp : data.sdp);
@@ -1207,10 +1205,9 @@
                 }
             }
 
-            async handleJoinerScanOffer(compressedOfferStr) {
+            async handleJoinerScanOffer(offerStr) {
                 try {
-                    const decompressed = await this.decompressString(compressedOfferStr);
-                    const data = JSON.parse(decompressed);
+                    const data = this.decodePayload(offerStr);
                     const peerId = data.i || data.id;
                     const sdpType = data.t || (data.sdp ? data.sdp.type : 'offer');
                     const sdpString = data.s || (data.sdp ? data.sdp.sdp : data.sdp);
@@ -1236,14 +1233,12 @@
                                 }
                             };
                             this.pc.addEventListener('icegatheringstatechange', check);
-                            setTimeout(res, 1500);
+                            setTimeout(res, 1200);
                         }
                     });
 
-                    // Compact & Compress Answer Payload
                     const payload = { i: this.app.myId, t: this.pc.localDescription.type, s: this.pc.localDescription.sdp };
-                    const jsonStr = JSON.stringify(payload);
-                    this.currentAnswerPayload = await this.compressString(jsonStr);
+                    this.currentAnswerPayload = this.encodePayload(payload);
                     return this.currentAnswerPayload;
                 } catch(e) {
                     console.error(e);
@@ -1616,14 +1611,14 @@
                     const offerStr = await this.lan.createHostOffer();
                     document.getElementById('lan-qrcode-offer').innerHTML = '';
                     new QRCode(document.getElementById('lan-qrcode-offer'), {
-                        text: offerStr, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.L
+                        text: offerStr, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.L
                     });
                 };
 
                 document.getElementById('btn-copy-offer-str').onclick = () => {
                     if (this.lan.currentOfferPayload) {
                         navigator.clipboard.writeText(this.lan.currentOfferPayload);
-                        this.ui.showToast("Host Offer Text Copied!");
+                        this.ui.showToast("Host Code Copied!");
                     }
                 };
 
@@ -1633,7 +1628,7 @@
                     this.lan.html5QrCode = new Html5Qrcode("lan-qr-reader");
                     this.lan.html5QrCode.start(
                         { facingMode: "environment" },
-                        { fps: 10, qrbox: 220 },
+                        { fps: 15, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
                         async (decodedText) => {
                             await this.lan.stopScanner();
                             this.lan.handleHostScanAnswer(decodedText);
@@ -1659,7 +1654,7 @@
                     this.lan.html5QrCode = new Html5Qrcode("lan-qr-reader");
                     this.lan.html5QrCode.start(
                         { facingMode: "environment" },
-                        { fps: 10, qrbox: 220 },
+                        { fps: 15, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
                         async (decodedText) => {
                             await this.lan.stopScanner();
                             const answerStr = await this.lan.handleJoinerScanOffer(decodedText);
@@ -1667,7 +1662,7 @@
                                 document.getElementById('lan-join-answer-wrap').style.display = 'flex';
                                 document.getElementById('lan-qrcode-answer').innerHTML = '';
                                 new QRCode(document.getElementById('lan-qrcode-answer'), {
-                                    text: answerStr, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.L
+                                    text: answerStr, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.L
                                 });
                             }
                         },
@@ -1700,7 +1695,7 @@
                             document.getElementById('lan-join-answer-wrap').style.display = 'flex';
                             document.getElementById('lan-qrcode-answer').innerHTML = '';
                             new QRCode(document.getElementById('lan-qrcode-answer'), {
-                                text: answerStr, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.L
+                                text: answerStr, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.L
                             });
                         }
                     } else if (this.lan.targetPasteMode === 'answer') {
