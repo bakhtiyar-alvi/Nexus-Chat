@@ -137,7 +137,6 @@
         .e2e-banner { align-self: center; background: rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 20px; font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-bottom: 10px; border: 1px solid var(--border-light); }
         .e2e-banner span { color: var(--accent-cyan); }
 
-        /* STRUCTURALLY SAFE MESSAGING */
         .message-wrap { display: flex; flex-direction: column; position: relative; margin-bottom: 4px; }
         .message-wrap.me { align-items: flex-end; }
         .message-wrap.them { align-items: flex-start; }
@@ -153,7 +152,6 @@
         .bubble b { font-weight: 700; } .bubble i { font-style: italic; } .bubble code { background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
         .bubble a { color: var(--accent-cyan); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
 
-        /* Link Previews styling */
         .link-preview-box { border-left: 3px solid var(--accent-cyan); background: rgba(0,0,0,0.2); margin-top: 6px; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; text-decoration: none; border-top: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); }
         .link-preview-img { width: 100%; max-height: 140px; object-fit: cover; }
         .link-preview-info { padding: 8px 10px; }
@@ -474,7 +472,7 @@
             </div>
             
             <div id="lan-step-select" style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
-                <p style="font-size:12px; color:var(--text-muted); line-height:1.4;">Pair directly over local Wi-Fi without any internet connection using QR code exchange.</p>
+                <p style="font-size:12px; color:var(--text-muted); line-height:1.4;">Pair directly over local Wi-Fi without internet using fast compressed QR codes.</p>
                 <button class="btn-primary" id="btn-lan-host">Option A: Host Connection (Show QR)</button>
                 <button class="btn-outline" id="btn-lan-join">Option B: Join Connection (Scan QR)</button>
             </div>
@@ -483,7 +481,7 @@
             <div id="lan-step-host" style="display:none; flex-direction:column; align-items:center; gap:12px;">
                 <div style="font-size:12px; font-weight:bold; color:var(--accent-cyan);">1. Have your friend scan this QR Code</div>
                 <div id="lan-qrcode-offer" style="background:#fff; padding:12px; border-radius:12px; min-width:200px; min-height:200px; display:flex; align-items:center; justify-content:center;">Generating QR...</div>
-                <button class="btn-outline" id="btn-copy-offer-str" style="font-size:11px; width:100%;">Copy Host Code Text</button>
+                <button class="btn-outline" id="btn-copy-offer-str" style="font-size:11px; width:100%;">Copy Compact Host Code</button>
                 <hr style="width:100%; border-color:var(--border-light); margin:5px 0;">
                 <div style="font-size:12px; font-weight:bold; color:var(--accent-cyan);">2. Scan your friend's Answer QR Code</div>
                 <button class="btn-primary" id="btn-scan-answer-qr" style="width:100%;">Scan Answer QR</button>
@@ -495,7 +493,7 @@
                 <div style="font-size:12px; font-weight:bold; color:var(--accent-cyan);">Scan Host's Connection QR</div>
                 <div id="lan-qr-reader" style="width:100%; max-width:320px; border-radius:12px; overflow:hidden; display:none;"></div>
                 <button class="btn-primary" id="btn-start-join-scan" style="width:100%;">Open Camera Scanner</button>
-                <button class="btn-outline" id="btn-paste-offer-str" style="width:100%; font-size:11px;">Or Paste Host Text Code</button>
+                <button class="btn-outline" id="btn-paste-offer-str" style="width:100%; font-size:11px;">Or Paste Host Code</button>
                 
                 <div id="lan-join-answer-wrap" style="display:none; flex-direction:column; align-items:center; gap:10px; width:100%;">
                     <div style="font-size:12px; font-weight:bold; color:#00E676;">Show this Answer QR back to Host:</div>
@@ -506,7 +504,7 @@
 
             <!-- Manual Text Paste Dialog -->
             <div id="lan-step-paste" style="display:none; flex-direction:column; gap:10px;">
-                <textarea class="code-box" id="lan-paste-input" rows="5" placeholder="Paste Code string here..."></textarea>
+                <textarea class="code-box" id="lan-paste-input" rows="4" placeholder="Paste Compact Code here..."></textarea>
                 <button class="btn-primary" id="btn-lan-paste-submit">Process Code</button>
             </div>
         </div>
@@ -951,7 +949,6 @@
                 this.#setupConn(c, true);
             }
 
-            // Fixed: Register Offline LAN Proxy Connection cleanly without duplicate key-exchange race condition
             registerExternalConn(peerId, connProxy) {
                 this.#conns.set(peerId, connProxy);
                 if (!this.#keys.has(peerId)) {
@@ -962,8 +959,31 @@
                 }
             }
 
+            // FIXED: Complete packet assembly routing for offline LAN channels (Fixes offline images, audio & video!)
             handleIncomingExternalData(peerId, d) {
-                this.#processData(peerId, d);
+                try {
+                    if (d._chunk) {
+                        if (!this.#chunkBuffers.has(d.id)) this.#chunkBuffers.set(d.id, { buf: [], t: d.t, count: 0 });
+                        const chunkData = this.#chunkBuffers.get(d.id); 
+                        
+                        if (!chunkData.buf[d.i]) {
+                            chunkData.buf[d.i] = d.d;
+                            chunkData.count++;
+                        }
+                        
+                        const pct = Math.round((chunkData.count / chunkData.t) * 100);
+                        this.#app.onTransferProgress('incoming', pct);
+
+                        if (chunkData.count === chunkData.t) { 
+                            const fullData = JSON.parse(chunkData.buf.join('')); 
+                            this.#chunkBuffers.delete(d.id); 
+                            setTimeout(() => this.#app.onTransferComplete('incoming'), 500);
+                            this.#processData(peerId, fullData); 
+                        }
+                    } else { 
+                        this.#processData(peerId, d); 
+                    }
+                } catch(e) { console.error("LAN Packet dropped:", e); }
             }
 
             #setupConn(c, isInit) {
@@ -1105,7 +1125,7 @@
             }
         }
 
-        // --- OFFLINE LAN WEBRTC PAIRING MANAGER ---
+        // --- OFFLINE LAN WEBRTC PAIRING MANAGER (WITH NATIVE STREAM DEFLATE COMPRESSION) ---
         class LANPairManager {
             constructor(app) {
                 this.app = app;
@@ -1115,6 +1135,26 @@
                 this.currentOfferPayload = null;
                 this.currentAnswerPayload = null;
                 this.targetPasteMode = null;
+            }
+
+            // Native Stream Pipeline Compression (Shrinks SDP by ~80% for instant low-density QR scanning)
+            async compressString(str) {
+                try {
+                    const stream = new Blob([str]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+                    const buffer = await new Response(stream).arrayBuffer();
+                    let binary = ''; const bytes = new Uint8Array(buffer);
+                    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+                    return btoa(binary);
+                } catch(e) { return str; } // Fallback to raw string if unsupported
+            }
+
+            async decompressString(b64) {
+                try {
+                    const binary = atob(b64); const bytes = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+                    return await new Response(stream).text();
+                } catch(e) { return b64; } // Fallback
             }
 
             createPeerConnection() {
@@ -1142,15 +1182,17 @@
                     }
                 });
 
-                // Compact payload format ('i', 't', 's') to avoid QR code overflow
+                // Compact & Compress Offer Payload
                 const payload = { i: this.app.myId, t: this.pc.localDescription.type, s: this.pc.localDescription.sdp };
-                this.currentOfferPayload = JSON.stringify(payload);
+                const jsonStr = JSON.stringify(payload);
+                this.currentOfferPayload = await this.compressString(jsonStr);
                 return this.currentOfferPayload;
             }
 
-            async handleHostScanAnswer(answerJsonStr) {
+            async handleHostScanAnswer(compressedAnswerStr) {
                 try {
-                    const data = JSON.parse(answerJsonStr);
+                    const decompressed = await this.decompressString(compressedAnswerStr);
+                    const data = JSON.parse(decompressed);
                     const peerId = data.i || data.id;
                     const sdpType = data.t || (data.sdp ? data.sdp.type : 'answer');
                     const sdpString = data.s || (data.sdp ? data.sdp.sdp : data.sdp);
@@ -1165,9 +1207,10 @@
                 }
             }
 
-            async handleJoinerScanOffer(offerJsonStr) {
+            async handleJoinerScanOffer(compressedOfferStr) {
                 try {
-                    const data = JSON.parse(offerJsonStr);
+                    const decompressed = await this.decompressString(compressedOfferStr);
+                    const data = JSON.parse(decompressed);
                     const peerId = data.i || data.id;
                     const sdpType = data.t || (data.sdp ? data.sdp.type : 'offer');
                     const sdpString = data.s || (data.sdp ? data.sdp.sdp : data.sdp);
@@ -1197,9 +1240,10 @@
                         }
                     });
 
-                    // Compact payload format
+                    // Compact & Compress Answer Payload
                     const payload = { i: this.app.myId, t: this.pc.localDescription.type, s: this.pc.localDescription.sdp };
-                    this.currentAnswerPayload = JSON.stringify(payload);
+                    const jsonStr = JSON.stringify(payload);
+                    this.currentAnswerPayload = await this.compressString(jsonStr);
                     return this.currentAnswerPayload;
                 } catch(e) {
                     console.error(e);
@@ -1436,7 +1480,6 @@
                     const video = document.getElementById('camera-preview');
                     video.srcObject = this.cameraStream;
                     
-                    // Mirror front camera live preview
                     if (this.cameraFacingMode === 'user') {
                         video.classList.add('mirror');
                     } else {
