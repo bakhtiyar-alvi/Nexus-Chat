@@ -139,7 +139,6 @@
         .message-wrap.them { align-items: flex-start; }
         .message-inner { max-width: 75%; display: flex; flex-direction: column; position: relative; animation: popIn 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28); user-select: none; }
         
-        /* Smooth transition for "Swipe to Reply" feature */
         .bubble { padding: 8px 12px 6px 12px; position: relative; box-shadow: var(--shadow-soft); font-size: 14.5px; display: flex; flex-direction: column; min-width: 80px; transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); will-change: transform; }
         .bubble.swiping { transition: none; }
         
@@ -177,7 +176,7 @@
         .dot:nth-child(1) { animation-delay: -0.32s; } .dot:nth-child(2) { animation-delay: -0.16s; }
 
         /* ==========================================================================
-           REACTION BAR & RESTORED 3-DOT CONTEXT MENU
+           REACTION BAR & CONTEXT MENU
            ========================================================================== */
         .btn-msg-menu { position: absolute; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; background: var(--bg-panel); border: 1px solid var(--border-light); color: var(--text-muted); opacity: 0; transition: 0.2s; display: flex; align-items: center; justify-content: center; z-index: 5;}
         .message-wrap.me .btn-msg-menu { left: -40px; }
@@ -213,7 +212,6 @@
         .input-pill { flex: 1; background: var(--bg-input); border: 1px solid var(--border-light); border-radius: 24px; display: flex; align-items: flex-end; padding: 4px 8px; box-shadow: var(--shadow-soft); transition: 0.2s;}
         .input-pill:focus-within { border-color: var(--accent-cyan); }
         
-        /* GBOARD FIX: Restored ARIA roles and data-placeholder */
         .chat-input { 
             flex: 1; 
             background: transparent; 
@@ -430,7 +428,6 @@
                             <button class="btn-inline" id="btn-attach" title="Attach"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
                             <input type="file" id="file-input" hidden>
                             
-                            <!-- GBOARD FIX: Exact WhatsApp Web ARIA configuration to force Rich Input -->
                             <div class="chat-input" id="message-input" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" dir="auto" tabindex="0" data-placeholder="Type a secure message..."></div>
 
                             <button class="btn-inline" id="btn-open-gif"><svg viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM8.5 8c.83 0 1.5.67 1.5 1.5S9.33 11 8.5 11 7 10.33 7 9.5 7.67 8 8.5 8zM12 18c-2.28 0-4.22-1.66-5-4h10c-.78 2.34-2.72 4-5 4zm3.5-7c-.83 0-1.5-.67-1.5-1.5S14.67 8 15.5 8s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg></button>
@@ -579,32 +576,59 @@
         </div>
     </div>
 
-    <!-- Call Screen Overlay -->
+    <!-- Call Screen Overlay with Mic Mute, Speaker & Recording -->
     <div id="call-overlay" class="panel-overlay" style="z-index: 2000;">
-        <div class="modal-box" style="padding:0; height:450px; overflow:hidden; background:#000; position:relative; border-radius: 24px;">
-            <div style="z-index:10; position:absolute; top:20px; left:20px;">
-                <button id="btn-switch-cam" class="btn-inline" style="background:rgba(255,255,255,0.2); color:#fff; display:none; backdrop-filter:blur(5px); box-shadow:var(--shadow-soft);" title="Switch Camera"><svg viewBox="0 0 24 24"><path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 11.5V13H9v2.5L5.5 12 9 8.5V11h6V8.5l3.5 3.5-3.5 3.5z"/></svg></button>
+        <div class="modal-box" style="padding:0; height:500px; overflow:hidden; background:#000; position:relative; border-radius:24px;">
+            
+            <div style="z-index:10; position:absolute; top:20px; left:20px; display:flex; gap:10px;">
+                <button id="btn-switch-cam" class="btn-inline" style="background:rgba(255,255,255,0.2); color:#fff; display:none; backdrop-filter:blur(5px);" title="Switch Camera"><svg viewBox="0 0 24 24"><path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 11.5V13H9v2.5L5.5 12 9 8.5V11h6V8.5l3.5 3.5-3.5 3.5z"/></svg></button>
+                <div id="call-rec-indicator" style="display:none; align-items:center; gap:6px; background:rgba(255,95,86,0.3); border:1px solid #FF5F56; padding:4px 12px; border-radius:12px; color:#FF5F56; font-size:11px; font-weight:bold;">
+                    <div class="dot" style="background:#FF5F56;"></div> REC
+                </div>
             </div>
+
             <video id="remote-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; position:absolute; inset:0; z-index:1; display:none;"></video>
-            <video id="local-video" autoplay playsinline muted style="width:100px; height:140px; object-fit:cover; position:absolute; bottom:20px; right:20px; border-radius:12px; z-index:3; border:2px solid var(--accent-cyan); display:none; box-shadow:var(--shadow-glow);"></video>
+            <video id="local-video" autoplay playsinline muted style="width:100px; height:140px; object-fit:cover; position:absolute; bottom:80px; right:20px; border-radius:12px; z-index:3; border:2px solid var(--accent-cyan); display:none; box-shadow:var(--shadow-glow);"></video>
             
             <div id="call-ui-layer" style="z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px);">
-                <div class="contact-avatar" id="call-avatar" style="width:120px; height:120px; font-size:40px; box-shadow:var(--shadow-glow); margin-bottom:20px;">?</div>
+                <div class="contact-avatar" id="call-avatar" style="width:110px; height:120px; font-size:40px; box-shadow:var(--shadow-glow); margin-bottom:20px;">?</div>
                 <h2 id="call-name" style="color:#fff; font-size:22px; margin-bottom:5px;">Friend</h2>
                 <p id="call-status" style="color:var(--text-muted); font-size:14px;">Calling...</p>
             </div>
 
-            <div style="z-index:3; position:absolute; bottom:30px; left:50%; transform:translateX(-50%); display:flex; gap:30px;">
-                <button id="btn-answer-call" class="btn-send-main" style="background:#00E676; display:none; box-shadow:0 0 20px rgba(0,230,118,0.5);"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></button>
-                <button id="btn-end-call" class="btn-send-main" style="background:#FF5F56; box-shadow:0 0 20px rgba(255,95,86,0.5);"><svg viewBox="0 0 24 24" style="color:#fff;"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg></button>
+            <!-- In-Call Control Bar -->
+            <div style="z-index:10; position:absolute; bottom:20px; left:50%; transform:translateX(-50%); display:flex; gap:15px; align-items:center; background:rgba(0,0,0,0.6); padding:10px 20px; border-radius:40px; backdrop-filter:blur(10px); border:1px solid var(--border-light);">
+                <button id="btn-toggle-mic" class="btn-inline" style="background:rgba(255,255,255,0.1); color:#fff;" title="Mute/Unmute Mic"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></button>
+                <button id="btn-toggle-speaker" class="btn-inline" style="background:rgba(255,255,255,0.1); color:#fff;" title="Speaker / Audio Output"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></button>
+                <button id="btn-record-call" class="btn-inline" style="background:rgba(255,255,255,0.1); color:#fff;" title="Record Call"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/><circle cx="12" cy="12" r="5" fill="#FF5F56"/></svg></button>
+                <button id="btn-answer-call" class="btn-send-main" style="background:#00E676; display:none; width:40px; height:40px;"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></button>
+                <button id="btn-end-call" class="btn-send-main" style="background:#FF5F56; width:40px; height:40px;"><svg viewBox="0 0 24 24" style="color:#fff;"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg></button>
             </div>
         </div>
     </div>
 
-    <!-- Lightbox Overlay -->
+    <!-- Expanded Lightbox Overlay with Edit/Draw, Share & Forward -->
     <div id="lightbox-overlay" class="lightbox-overlay">
-        <button class="btn-inline" id="btn-close-lightbox" style="position:absolute; top:20px; right:20px; z-index:10; background:rgba(0,0,0,0.5); color:#fff;"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
-        <img id="lightbox-img" class="lightbox-img" src="">
+        <!-- Lightbox Action Bar -->
+        <div class="lb-toolbar" style="position:absolute; top:20px; right:20px; z-index:100; display:flex; gap:10px; background:rgba(0,0,0,0.6); padding:8px 14px; border-radius:30px; backdrop-filter:blur(10px); border:1px solid var(--border-light);">
+            <button class="btn-inline" id="btn-lb-draw" title="Draw / Edit" style="color:#fff;"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+            <button class="btn-inline" id="btn-lb-share" title="Share" style="color:#fff;"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg></button>
+            <button class="btn-inline" id="btn-lb-forward" title="Forward Message" style="color:#fff;"><svg viewBox="0 0 24 24"><path d="M12 8V4l8 8-8 8v-4H4V8h8z"/></svg></button>
+            <button class="btn-inline" id="btn-close-lightbox" style="color:#FF5F56;"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+        </div>
+
+        <!-- Drawing Color Controls -->
+        <div id="lb-draw-controls" style="position:absolute; bottom:30px; left:50%; transform:translateX(-50%); z-index:100; display:none; gap:12px; background:rgba(0,0,0,0.8); padding:10px 20px; border-radius:30px; align-items:center; border:1px solid var(--border-light);">
+            <input type="color" id="lb-draw-color" value="#00E5FF" style="width:32px; height:32px; border:none; border-radius:50%; cursor:pointer; background:none;">
+            <input type="range" id="lb-draw-size" min="2" max="20" value="5" style="width:80px;">
+            <button class="btn-outline" id="btn-lb-clear-draw" style="padding:4px 10px; font-size:11px;">Clear</button>
+            <button class="btn-primary" id="btn-lb-save-draw" style="padding:6px 14px; font-size:12px;">Send Edit</button>
+        </div>
+
+        <div style="position:relative; max-width:90%; max-height:90%; display:flex; align-items:center; justify-content:center;">
+            <img id="lightbox-img" class="lightbox-img" src="" style="touch-action: none;">
+            <canvas id="lightbox-canvas" style="position:absolute; top:0; left:0; pointer-events:none; display:none;"></canvas>
+        </div>
     </div>
 
     <div class="toast" id="global-toast">Notification</div>
@@ -628,7 +652,6 @@
             },
             fileToBase64: (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); }),
             compressImage: (file, maxWidth = 1280) => new Promise((resolve, reject) => {
-                // GBOARD FIX: Bypass canvas compression if the file is a GIF so it doesn't freeze!
                 if(!file.type.startsWith('image/') || file.type === 'image/gif') return Utils.fileToBase64(file).then(resolve).catch(reject);
                 const img = new Image();
                 img.onload = () => {
@@ -1004,6 +1027,12 @@
 
                 this.currentCall = null; this.localStream = null; this.camFacingMode = 'user'; 
 
+                // Call Controls State
+                this.callRecorder = null;
+                this.callChunks = [];
+                this.isMicMuted = false;
+                this.isSpeakerOn = true;
+
                 this.lbScale = 1; this.lbPanX = 0; this.lbPanY = 0; this.lbPanning = false; this.lbStartX = 0; this.lbStartY = 0; this.lbStartDist = 0;
             }
 
@@ -1033,7 +1062,7 @@
                         const messaging = firebase.messaging();
                         const permission = await Notification.requestPermission();
                         
-                        if (permission === 'granted') {
+                        if (permission === 'granted' && 'serviceWorker' in navigator) {
                             const swRegistration = await navigator.serviceWorker.ready;
                             const token = await messaging.getToken({ 
                                 vapidKey: 'BMWDB-ZjsqTr98orZmQpmlTZM-LrmBd8sWWQW1x09fXUJzVfm2uA2jk0I867qSiWh3qE766W7CDwaZek--es3gY',
@@ -1053,7 +1082,7 @@
 
                 window.history.pushState({ page: 'home' }, "");
 
-                // RESTORED: Catch OS Share Sheet data
+                // Catch OS Share Sheet data
                 const params = new URLSearchParams(window.location.search);
                 if (params.get('shared') === '1') {
                     window.history.replaceState({}, document.title, window.location.pathname);
@@ -1326,17 +1355,240 @@
                 document.getElementById('cmenu-delete-everyone').onclick = () => { this.deleteMessage(true); document.getElementById('context-menu').classList.remove('active'); };
 
                 document.getElementById('btn-close-lightbox').onclick = () => this.closeLightbox();
+
+                // --- ACCURATE LIGHTBOX PINCH-ZOOM & DRAWING HANDLERS ---
                 const lbImg = document.getElementById('lightbox-img');
-                const setLbTransform = () => { lbImg.style.transform = `translate(${this.lbPanX}px, ${this.lbPanY}px) scale(${this.lbScale})`; };
+                const lbCanvas = document.getElementById('lightbox-canvas');
+                const ctx = lbCanvas.getContext('2d');
+                let isDrawing = false;
+
+                const setLbTransform = () => {
+                    lbImg.style.transform = `translate(${this.lbPanX}px, ${this.lbPanY}px) scale(${this.lbScale})`;
+                    lbCanvas.style.transform = `translate(${this.lbPanX}px, ${this.lbPanY}px) scale(${this.lbScale})`;
+                };
+
+                let initialPinchDist = 0;
+                let initialScale = 1;
+
+                // Accurate coordinate calculator mapping screen pixels to internal canvas pixels
+                const getCanvasCoords = (clientX, clientY) => {
+                    const rect = lbCanvas.getBoundingClientRect();
+                    const scaleX = lbCanvas.width / rect.width;
+                    const scaleY = lbCanvas.height / rect.height;
+                    return {
+                        x: (clientX - rect.left) * scaleX,
+                        y: (clientY - rect.top) * scaleY
+                    };
+                };
+
+                // Touch Events for Mobile
+                document.getElementById('lightbox-overlay').addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 2) {
+                        initialPinchDist = Math.hypot(
+                            e.touches[0].clientX - e.touches[1].clientX,
+                            e.touches[0].clientY - e.touches[1].clientY
+                        );
+                        initialScale = this.lbScale;
+                    } else if (e.touches.length === 1) {
+                        this.lbStartX = e.touches[0].clientX - this.lbPanX;
+                        this.lbStartY = e.touches[0].clientY - this.lbPanY;
+                        this.lbPanning = true;
+
+                        if (lbCanvas.style.display === 'block') {
+                            isDrawing = true;
+                            const pos = getCanvasCoords(e.touches[0].clientX, e.touches[0].clientY);
+                            ctx.beginPath();
+                            ctx.moveTo(pos.x, pos.y);
+                        }
+                    }
+                }, { passive: false });
+
+                document.getElementById('lightbox-overlay').addEventListener('touchmove', (e) => {
+                    if (e.touches.length === 2) {
+                        e.preventDefault();
+                        const currentDist = Math.hypot(
+                            e.touches[0].clientX - e.touches[1].clientX,
+                            e.touches[0].clientY - e.touches[1].clientY
+                        );
+                        this.lbScale = Math.min(Math.max(1, initialScale * (currentDist / initialPinchDist)), 4);
+                        setLbTransform();
+                    } else if (e.touches.length === 1 && this.lbPanning) {
+                        if (lbCanvas.style.display === 'block' && isDrawing) {
+                            const pos = getCanvasCoords(e.touches[0].clientX, e.touches[0].clientY);
+                            ctx.strokeStyle = document.getElementById('lb-draw-color').value;
+                            ctx.lineWidth = document.getElementById('lb-draw-size').value * (lbCanvas.width / 400);
+                            ctx.lineCap = 'round';
+                            ctx.lineTo(pos.x, pos.y);
+                            ctx.stroke();
+                        } else {
+                            this.lbPanX = e.touches[0].clientX - this.lbStartX;
+                            this.lbPanY = e.touches[0].clientY - this.lbStartY;
+                            setLbTransform();
+                        }
+                    }
+                }, { passive: false });
+
+                document.getElementById('lightbox-overlay').addEventListener('touchend', () => {
+                    this.lbPanning = false;
+                    isDrawing = false;
+                });
+
+                // Desktop Mouse Drawing Handlers
+                lbCanvas.onmousedown = (e) => {
+                    if (lbCanvas.style.display === 'block') {
+                        isDrawing = true;
+                        const pos = getCanvasCoords(e.clientX, e.clientY);
+                        ctx.beginPath();
+                        ctx.moveTo(pos.x, pos.y);
+                    }
+                };
+
+                lbCanvas.onmousemove = (e) => {
+                    if (lbCanvas.style.display === 'block' && isDrawing) {
+                        const pos = getCanvasCoords(e.clientX, e.clientY);
+                        ctx.strokeStyle = document.getElementById('lb-draw-color').value;
+                        ctx.lineWidth = document.getElementById('lb-draw-size').value * (lbCanvas.width / 400);
+                        ctx.lineCap = 'round';
+                        ctx.lineTo(pos.x, pos.y);
+                        ctx.stroke();
+                    }
+                };
+
+                lbCanvas.onmouseup = () => isDrawing = false;
+                lbCanvas.onmouseleave = () => isDrawing = false;
+
                 lbImg.onmousedown = (e) => { e.preventDefault(); this.lbStartX = e.clientX - this.lbPanX; this.lbStartY = e.clientY - this.lbPanY; this.lbPanning = true; };
                 window.addEventListener('mouseup', () => this.lbPanning = false);
                 window.addEventListener('mousemove', (e) => { if(!this.lbPanning || document.getElementById('lightbox-overlay').style.display !== 'flex') return; this.lbPanX = e.clientX - this.lbStartX; this.lbPanY = e.clientY - this.lbStartY; setLbTransform(); });
                 lbImg.onwheel = (e) => { if(document.getElementById('lightbox-overlay').style.display !== 'flex') return; e.preventDefault(); const xs = (e.clientX - this.lbPanX) / this.lbScale, ys = (e.clientY - this.lbPanY) / this.lbScale; const delta = (e.wheelDelta ? -e.wheelDelta : e.deltaY); (delta > 0) ? (this.lbScale /= 1.2) : (this.lbScale *= 1.2); this.lbPanX = e.clientX - xs * this.lbScale; this.lbPanY = e.clientY - ys * this.lbScale; setLbTransform(); };
 
+                // Lightbox Draw Toggle
+                document.getElementById('btn-lb-draw').onclick = () => {
+                    const isCanvasOpen = lbCanvas.style.display === 'block';
+                    if (!isCanvasOpen) {
+                        lbCanvas.width = lbImg.naturalWidth || lbImg.clientWidth;
+                        lbCanvas.height = lbImg.naturalHeight || lbImg.clientHeight;
+                        lbCanvas.style.width = lbImg.clientWidth + 'px';
+                        lbCanvas.style.height = lbImg.clientHeight + 'px';
+                        lbCanvas.style.display = 'block';
+                        lbCanvas.style.pointerEvents = 'all';
+                        document.getElementById('lb-draw-controls').style.display = 'flex';
+                    } else {
+                        lbCanvas.style.display = 'none';
+                        document.getElementById('lb-draw-controls').style.display = 'none';
+                    }
+                };
+
+                document.getElementById('btn-lb-clear-draw').onclick = () => {
+                    ctx.clearRect(0, 0, lbCanvas.width, lbCanvas.height);
+                };
+
+                // Save Drawn Image & Send to Active Chat
+                document.getElementById('btn-lb-save-draw').onclick = () => {
+                    const finalCanvas = document.createElement('canvas');
+                    finalCanvas.width = lbCanvas.width;
+                    finalCanvas.height = lbCanvas.height;
+                    const fCtx = finalCanvas.getContext('2d');
+                    fCtx.drawImage(lbImg, 0, 0, finalCanvas.width, finalCanvas.height);
+                    fCtx.drawImage(lbCanvas, 0, 0);
+                    
+                    const editedB64 = finalCanvas.toDataURL('image/jpeg', 0.85);
+                    this.sendOutbound({ type: 'image', data: editedB64, name: 'edited_image.jpg' });
+                    this.closeLightbox();
+                    this.ui.showToast("Edited image sent!");
+                };
+
+                // Native Share Button
+                document.getElementById('btn-lb-share').onclick = async () => {
+                    try {
+                        const blob = await (await fetch(lbImg.src)).blob();
+                        const file = new File([blob], 'shared_image.jpg', { type: blob.type });
+                        if (navigator.share) {
+                            await navigator.share({ files: [file], title: 'Nexus Media' });
+                        } else {
+                            this.ui.showToast("Sharing not supported on this device.");
+                        }
+                    } catch (e) { this.ui.showToast("Share cancelled"); }
+                };
+
+                // Forward Image Button
+                document.getElementById('btn-lb-forward').onclick = () => {
+                    this.pendingShareFile = lbImg.src;
+                    this.closeLightbox();
+                    this.ui.showToast("Select a contact to forward image to");
+                };
+
+                // --- IN-CALL FEATURE HANDLERS ---
                 document.getElementById('btn-voice-call').onclick = () => this.startCall(false);
                 document.getElementById('btn-video-call').onclick = () => this.startCall(true);
                 document.getElementById('btn-end-call').onclick = () => this.endCall(true);
                 document.getElementById('btn-switch-cam').onclick = () => this.switchCamera();
+
+                // Mic Mute Toggle
+                document.getElementById('btn-toggle-mic').onclick = () => {
+                    if (this.localStream) {
+                        const audioTrack = this.localStream.getAudioTracks()[0];
+                        if (audioTrack) {
+                            audioTrack.enabled = !audioTrack.enabled;
+                            this.isMicMuted = !audioTrack.enabled;
+                            document.getElementById('btn-toggle-mic').style.color = this.isMicMuted ? '#FF5F56' : '#fff';
+                            this.ui.showToast(this.isMicMuted ? "Microphone Muted" : "Microphone Active");
+                        }
+                    }
+                };
+
+                // Speaker Toggle
+                document.getElementById('btn-toggle-speaker').onclick = async () => {
+                    const remoteVideo = document.getElementById('remote-video');
+                    if ('setSinkId' in remoteVideo) {
+                        try {
+                            const devices = await navigator.mediaDevices.enumerateDevices();
+                            const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+                            if (audioOutputs.length > 1) {
+                                const nextDevice = this.isSpeakerOn ? audioOutputs[0].deviceId : audioOutputs[1].deviceId;
+                                await remoteVideo.setSinkId(nextDevice);
+                                this.isSpeakerOn = !this.isSpeakerOn;
+                                this.ui.showToast(this.isSpeakerOn ? "Speaker Mode" : "Earpiece Mode");
+                            }
+                        } catch(e) { this.ui.showToast("Audio output toggle not supported on this device."); }
+                    } else {
+                        this.ui.showToast("Audio routing controlled by OS settings.");
+                    }
+                };
+
+                // Call Recording Toggle
+                document.getElementById('btn-record-call').onclick = () => {
+                    const recBtn = document.getElementById('btn-record-call');
+                    const recInd = document.getElementById('call-rec-indicator');
+
+                    if (this.callRecorder && this.callRecorder.state === 'recording') {
+                        this.callRecorder.stop();
+                        recBtn.style.color = '#fff';
+                        recInd.style.display = 'none';
+                        this.ui.showToast("Call recording saved!");
+                    } else {
+                        try {
+                            const remoteVideo = document.getElementById('remote-video');
+                            const streamToRecord = remoteVideo.srcObject || this.localStream;
+                            if (!streamToRecord) return this.ui.showToast("No active stream to record.");
+
+                            this.callChunks = [];
+                            this.callRecorder = new MediaRecorder(streamToRecord);
+                            this.callRecorder.ondataavailable = e => this.callChunks.push(e.data);
+                            this.callRecorder.onstop = () => {
+                                const blob = new Blob(this.callChunks, { type: 'video/webm' });
+                                const a = document.createElement('a');
+                                a.href = URL.createObjectURL(blob);
+                                a.download = `Nexus_Call_Record_${Date.now()}.webm`;
+                                a.click();
+                            };
+                            this.callRecorder.start();
+                            recBtn.style.color = '#FF5F56';
+                            recInd.style.display = 'flex';
+                            this.ui.showToast("Call Recording Started...");
+                        } catch(e) { this.ui.showToast("Call recording failed to start."); }
+                    }
+                };
             }
 
             onCloudConnect() { document.getElementById('global-server-dot').className='server-dot online'; document.getElementById('global-server-text').innerText='Cloud Online'; this.renderContacts(); }
@@ -1411,11 +1663,25 @@
             }
 
             openLightbox(src) { document.getElementById('lightbox-img').src = src; document.getElementById('lightbox-overlay').style.display = 'flex'; setTimeout(() => document.getElementById('lightbox-overlay').classList.add('show'), 10); }
-            closeLightbox() { document.getElementById('lightbox-overlay').classList.remove('show'); setTimeout(() => { document.getElementById('lightbox-overlay').style.display = 'none'; document.getElementById('lightbox-img').src = ''; this.lbScale = 1; this.lbPanX = 0; this.lbPanY = 0; document.getElementById('lightbox-img').style.transform = `translate(0px, 0px) scale(1)`; }, 200); }
+            closeLightbox() { 
+                document.getElementById('lightbox-overlay').classList.remove('show'); 
+                setTimeout(() => { 
+                    document.getElementById('lightbox-overlay').style.display = 'none'; 
+                    document.getElementById('lightbox-img').src = ''; 
+                    const lbCanvas = document.getElementById('lightbox-canvas');
+                    const ctx = lbCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, lbCanvas.width, lbCanvas.height);
+                    lbCanvas.style.display = 'none';
+                    document.getElementById('lb-draw-controls').style.display = 'none';
+                    this.lbScale = 1; this.lbPanX = 0; this.lbPanY = 0; 
+                    document.getElementById('lightbox-img').style.transform = `translate(0px, 0px) scale(1)`; 
+                    lbCanvas.style.transform = `translate(0px, 0px) scale(1)`; 
+                }, 200); 
+            }
 
             async startCall(isVideo) {
                 if(!this.activeContact || !this.net.isConnected(this.activeContact)) {
-                    // --- NEW: Send wake-up ping for calls ---
+                    // Send wake-up ping for calls
                     this.store.getContact(this.activeContact).then(cInfo => {
                         if (cInfo && cInfo.fcmToken) {
                             fetch('https://nexus-chat-three-ashen.vercel.app/api/push', {
@@ -1430,7 +1696,6 @@
                         }
                     });
                     return this.ui.showToast("Contact offline. Wake-up ping sent!");
-                    // ----------------------------------------
                 }
                 try {
                     this.camFacingMode = 'user';
@@ -1484,8 +1749,10 @@
                 } catch(e) { this.ui.showToast("Camera switch failed."); }
             }
 
-                        endCall(broadcast = true) {
-                // FIXED: Null safety check to prevent app crashes
+            endCall(broadcast = true) {
+                if (this.callRecorder && this.callRecorder.state === 'recording') {
+                    try { this.callRecorder.stop(); } catch(e) {}
+                }
                 if(this.currentCall) { 
                     const peerId = this.currentCall.peer;
                     this.currentCall.close(); 
@@ -1498,6 +1765,7 @@
 
                 document.getElementById('remote-video').style.display = 'none'; document.getElementById('local-video').style.display = 'none';
                 document.getElementById('btn-answer-call').style.display = 'none'; document.getElementById('btn-switch-cam').style.display = 'none';
+                document.getElementById('call-rec-indicator').style.display = 'none';
                 document.getElementById('remote-video').srcObject = null; document.getElementById('local-video').srcObject = null;
             }
 
@@ -1587,7 +1855,9 @@
                     if (this.pendingShareFile) {
                         const file = this.pendingShareFile;
                         setTimeout(async () => {
-                            if (file.type.startsWith('video/')) {
+                            if (typeof file === 'string') {
+                                this.sendOutbound({ type: 'image', data: file, name: 'forwarded_image.jpg' });
+                            } else if (file.type.startsWith('video/')) {
                                 const b64 = await Utils.fileToBase64(file);
                                 this.sendOutbound({ type: 'video', data: b64, name: file.name });
                             } else if (file.type.startsWith('image/')) {
@@ -1648,7 +1918,7 @@
                 if(msgs.length < 50) document.getElementById('chunk-loader').style.display = 'none';
             }
 
-                        async sendOutbound(mediaObj = null) {
+            async sendOutbound(mediaObj = null) {
                 const inp = document.getElementById('message-input'); const text = inp.innerText.trim(); if(!text && !mediaObj) return;
                 if(this.contextState.mode === 'edit') {
                     const m = await this.store.getMsg(this.contextState.targetId);
@@ -1662,16 +1932,9 @@
                         const success = await this.net.send(this.activeContact, {type:'msg', payload:m}, (pct) => { const pb = document.getElementById(`prog-bar-${m.id}`); const pt = document.getElementById(`prog-txt-${m.id}`); if(pb) pb.style.width = `${pct}%`; if(pt) pt.innerText = `${pct}%`; });
                         if(success) { m.status = 'sent'; await this.store.saveMsg(m); this.renderMsg(m); }
                     } else {
-                        // --- DIAGNOSTIC PUSH BLOCK ---
-                        this.ui.showToast("Debug: Peer offline, checking token...");
+                        // Trigger Push Notification when peer is offline
                         const cInfo = await this.store.getContact(this.activeContact);
-                        
-                        if (!cInfo) {
-                            this.ui.showToast("Debug Error: Contact not found in database.");
-                        } else if (!cInfo.fcmToken) {
-                            this.ui.showToast("Debug Error: No FCM Token for this friend! Keep both phones open to sync.");
-                        } else {
-                            this.ui.showToast("Debug: Token found! Hitting Vercel...");
+                        if (cInfo && cInfo.fcmToken) {
                             fetch('https://nexus-chat-three-ashen.vercel.app/api/push', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -1680,23 +1943,12 @@
                                     title: 'Nexus Secure',
                                     body: 'New encrypted message'
                                 })
-                            })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    this.ui.showToast("Debug Success: Vercel fired push!");
-                                } else {
-                                    this.ui.showToast("Debug API Error: " + JSON.stringify(data));
-                                }
-                            })
-                            .catch(err => this.ui.showToast('Debug Fetch Error: ' + err.message));
+                            }).catch(err => console.log('Push failed:', err));
                         }
-                        // ---------------------------------------------------------
                     }
                 }
                 inp.innerHTML = ''; this.clearActionContext();
             }
-
 
             openContextMenu(e, id, isMine, status, isPinned) {
                 e.stopPropagation();
@@ -1873,16 +2125,15 @@
             }
         }
 
+        // Register Service Worker first to prevent deadlock in start()
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker Registered!', reg.scope))
+                .catch(err => console.error('Service Worker Registration Failed:', err));
+        }
+
         window.app = new AppController();
         document.addEventListener('DOMContentLoaded', () => window.app.start());
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker Registered!', reg.scope))
-                    .catch(err => console.error('Service Worker Registration Failed:', err));
-            });
-        }
     </script>
 </body>
 </html>
