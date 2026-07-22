@@ -47,8 +47,8 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// Cache bumped to v14.0 to pre-cache offline QR Code libraries
-const CACHE_NAME = 'nexus-secure-v14.0';
+// Cache bumped to v15.0 to pre-cache offline QR Code libraries
+const CACHE_NAME = 'nexus-secure-v15.0';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
