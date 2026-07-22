@@ -274,6 +274,9 @@
         .lightbox-overlay.show { opacity:1; }
         .lightbox-img { max-width:90%; max-height:90%; border-radius:12px; box-shadow:var(--shadow-glow); object-fit:contain; transform-origin: center center; cursor: grab; }
 
+        /* Direct Camera Selfie Mirroring CSS */
+        #camera-preview.mirror { transform: scaleX(-1); }
+
         .highlight-anim { animation: highlightFlash 2s ease-out; }
         
         #floating-bubble { position: absolute; width: 60px; height: 60px; border-radius: 50%; background: var(--bg-panel); backdrop-filter: blur(20px); border: 2px solid var(--accent-cyan); box-shadow: var(--shadow-glow); display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 1000; transition: transform 0.2s; opacity: 0; pointer-events: none; transform: scale(0.5); }
@@ -559,9 +562,14 @@
             </div>
             
             <div class="setting-group" style="align-items: center;">
-                <div class="contact-avatar" id="settings-my-avatar" style="width: 80px; height: 80px; font-size: 24px; cursor: pointer; box-shadow:var(--shadow-glow);" title="Click to Change Avatar">Me</div>
+                <div style="position: relative; display: inline-block;">
+                    <div class="contact-avatar" id="settings-my-avatar" style="width: 80px; height: 80px; font-size: 24px; cursor: pointer; box-shadow:var(--shadow-glow);" title="View Photo">Me</div>
+                    <button id="btn-change-pfp" style="position: absolute; bottom: 0; right: -4px; background: var(--accent-cyan); color: #000; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg-panel); box-shadow: 0 2px 6px rgba(0,0,0,0.5); cursor: pointer;" title="Change Photo">
+                        <svg viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    </button>
+                </div>
                 <input type="file" id="input-my-avatar" accept="image/*" hidden>
-                <div style="font-size: 10px; color: var(--text-muted); margin-top: 5px;">Click to change PFP</div>
+                <div style="font-size: 10px; color: var(--text-muted); margin-top: 5px;">Tap photo to view • Tap edit icon to upload new</div>
             </div>
 
             <div class="setting-group">
@@ -943,13 +951,15 @@
                 this.#setupConn(c, true);
             }
 
-            // Register Offline LAN Proxy Connection
+            // Fixed: Register Offline LAN Proxy Connection cleanly without duplicate key-exchange race condition
             registerExternalConn(peerId, connProxy) {
                 this.#conns.set(peerId, connProxy);
-                this.#crypto.generateKey().then(async (key) => {
-                    this.#keys.set(peerId, key);
-                    connProxy.send({ type: 'sys', act: 'key_exchange', key: await this.#crypto.exportKey(key) });
-                });
+                if (!this.#keys.has(peerId)) {
+                    this.#crypto.generateKey().then(async (key) => {
+                        this.#keys.set(peerId, key);
+                        connProxy.send({ type: 'sys', act: 'key_exchange', key: await this.#crypto.exportKey(key) });
+                    });
+                }
             }
 
             handleIncomingExternalData(peerId, d) {
@@ -996,7 +1006,8 @@
             async #processData(peerId, d) {
                 if(d.type === 'sys' && d.act === 'key_exchange') {
                     this.#keys.set(peerId, await this.#crypto.importKey(d.key));
-                    this.#conns.get(peerId).send({ type: 'sys', act: 'key_ack' });
+                    const activeConn = this.#conns.get(peerId);
+                    if (activeConn) activeConn.send({ type: 'sys', act: 'key_ack' });
                     this.#app.onPeerConnect(peerId);
                 } 
                 else if(d.type === 'sys' && d.act === 'key_ack') { this.#app.onPeerConnect(peerId); }
@@ -1131,7 +1142,8 @@
                     }
                 });
 
-                const payload = { id: this.app.myId, sdp: this.pc.localDescription };
+                // Compact payload format ('i', 't', 's') to avoid QR code overflow
+                const payload = { i: this.app.myId, t: this.pc.localDescription.type, s: this.pc.localDescription.sdp };
                 this.currentOfferPayload = JSON.stringify(payload);
                 return this.currentOfferPayload;
             }
@@ -1139,11 +1151,16 @@
             async handleHostScanAnswer(answerJsonStr) {
                 try {
                     const data = JSON.parse(answerJsonStr);
-                    await this.pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-                    this.setupChannelListeners(this.dataChannel, data.id);
-                    this.app.ui.showToast("LAN Connected to " + data.id + "!");
+                    const peerId = data.i || data.id;
+                    const sdpType = data.t || (data.sdp ? data.sdp.type : 'answer');
+                    const sdpString = data.s || (data.sdp ? data.sdp.sdp : data.sdp);
+
+                    await this.pc.setRemoteDescription(new RTCSessionDescription({ type: sdpType, sdp: sdpString }));
+                    this.setupChannelListeners(this.dataChannel, peerId);
+                    this.app.ui.showToast("LAN Connected to " + peerId + "!");
                     this.app.ui.hideModal('lan-modal');
                 } catch(e) {
+                    console.error(e);
                     this.app.ui.showToast("Invalid Answer Code!");
                 }
             }
@@ -1151,14 +1168,18 @@
             async handleJoinerScanOffer(offerJsonStr) {
                 try {
                     const data = JSON.parse(offerJsonStr);
+                    const peerId = data.i || data.id;
+                    const sdpType = data.t || (data.sdp ? data.sdp.type : 'offer');
+                    const sdpString = data.s || (data.sdp ? data.sdp.sdp : data.sdp);
+
                     this.pc = this.createPeerConnection();
 
                     this.pc.ondatachannel = (e) => {
                         this.dataChannel = e.channel;
-                        this.setupChannelListeners(this.dataChannel, data.id);
+                        this.setupChannelListeners(this.dataChannel, peerId);
                     };
 
-                    await this.pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                    await this.pc.setRemoteDescription(new RTCSessionDescription({ type: sdpType, sdp: sdpString }));
                     const answer = await this.pc.createAnswer();
                     await this.pc.setLocalDescription(answer);
 
@@ -1176,10 +1197,12 @@
                         }
                     });
 
-                    const payload = { id: this.app.myId, sdp: this.pc.localDescription };
+                    // Compact payload format
+                    const payload = { i: this.app.myId, t: this.pc.localDescription.type, s: this.pc.localDescription.sdp };
                     this.currentAnswerPayload = JSON.stringify(payload);
                     return this.currentAnswerPayload;
                 } catch(e) {
+                    console.error(e);
                     this.app.ui.showToast("Invalid Host Code!");
                     return null;
                 }
@@ -1224,9 +1247,7 @@
 
             async stopScanner() {
                 if (this.html5QrCode) {
-                    try { 
-                        await this.html5QrCode.stop(); 
-                    } catch(e){}
+                    try { await this.html5QrCode.stop(); } catch(e){}
                     this.html5QrCode = null;
                 }
                 document.getElementById('lan-qr-reader').style.display = 'none';
@@ -1404,7 +1425,7 @@
                 this.ui.showModal('contact-modal');
             }
 
-            // --- DIRECT CAMERA METHODS ---
+            // --- DIRECT CAMERA METHODS (With Selfie Preview Mirroring) ---
             async openCamera() {
                 try {
                     if (this.cameraStream) this.cameraStream.getTracks().forEach(t => t.stop());
@@ -1414,6 +1435,13 @@
                     });
                     const video = document.getElementById('camera-preview');
                     video.srcObject = this.cameraStream;
+                    
+                    // Mirror front camera live preview
+                    if (this.cameraFacingMode === 'user') {
+                        video.classList.add('mirror');
+                    } else {
+                        video.classList.remove('mirror');
+                    }
                     this.ui.showModal('camera-modal');
                 } catch(e) {
                     this.ui.showToast("Camera access denied or unavailable.");
@@ -1425,8 +1453,6 @@
                     this.cameraStream.getTracks().forEach(t => t.stop());
                     this.cameraStream = null;
                 }
-                const video = document.getElementById('camera-preview');
-                if (video) video.srcObject = null;
                 this.ui.hideModal('camera-modal');
             }
 
@@ -1495,7 +1521,7 @@
                 this.store.get('myStatus', 'Online').then(s => { statInp.value=s; document.getElementById('my-status-display').innerText=s; });
                 statInp.onchange = () => { this.store.set('myStatus', statInp.value); document.getElementById('my-status-display').innerText = statInp.value; this.net.broadcastProfile({ status: statInp.value }); };
 
-                // Profile Picture Fullscreen Zoom Event Listeners
+                // Profile Picture Fullscreen Zoom & Change Event Listeners
                 document.getElementById('my-sidebar-avatar').onclick = async (e) => {
                     e.stopPropagation();
                     const myAv = await this.store.get('myAvatar');
@@ -1510,6 +1536,11 @@
                     } else {
                         document.getElementById('input-my-avatar').click();
                     }
+                };
+
+                document.getElementById('btn-change-pfp').onclick = (e) => {
+                    e.stopPropagation();
+                    document.getElementById('input-my-avatar').click();
                 };
 
                 document.getElementById('header-avatar').onclick = async (e) => {
@@ -1542,7 +1573,7 @@
                     const offerStr = await this.lan.createHostOffer();
                     document.getElementById('lan-qrcode-offer').innerHTML = '';
                     new QRCode(document.getElementById('lan-qrcode-offer'), {
-                        text: offerStr, width: 200, height: 200, correctLevel: 1
+                        text: offerStr, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.L
                     });
                 };
 
@@ -1593,7 +1624,7 @@
                                 document.getElementById('lan-join-answer-wrap').style.display = 'flex';
                                 document.getElementById('lan-qrcode-answer').innerHTML = '';
                                 new QRCode(document.getElementById('lan-qrcode-answer'), {
-                                    text: answerStr, width: 200, height: 200, correctLevel: 1
+                                    text: answerStr, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.L
                                 });
                             }
                         },
@@ -1626,7 +1657,7 @@
                             document.getElementById('lan-join-answer-wrap').style.display = 'flex';
                             document.getElementById('lan-qrcode-answer').innerHTML = '';
                             new QRCode(document.getElementById('lan-qrcode-answer'), {
-                                text: answerStr, width: 200, height: 200, correctLevel: 1
+                                text: answerStr, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.L
                             });
                         }
                     } else if (this.lan.targetPasteMode === 'answer') {
