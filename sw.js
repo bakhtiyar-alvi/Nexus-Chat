@@ -48,8 +48,8 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// Cache bumped to v12.0 to purge old client caches and load latest index.html features
-const CACHE_NAME = 'nexus-secure-v12.0';
+// Cache bumped to v13.0 to purge old client caches and load latest index.html features
+const CACHE_NAME = 'nexus-secure-v13.0';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
