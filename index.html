@@ -13,17 +13,12 @@
     <link rel="apple-touch-icon" href="logo.svg">
     
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-    <!-- Firebase App & Messaging SDKs (Compat version for Vanilla JS) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
-    <!-- QR Code Generator & Scanner Libraries (Offline Capable) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 
     <style>
-        /* ==========================================================================
-           DYNAMIC CSS VARIABLES & THEMING
-           ========================================================================== */
         :root {
             --bg-base: #141418; --bg-panel: #1E1F24; --bg-sidebar-item: rgba(0,0,0,0.2);
             --bg-bubble-me: #5865F2; --bg-bubble-them: #2B2D32;
@@ -51,9 +46,6 @@
         button { background: none; border: none; color: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
         input, textarea { font-family: inherit; font-size: inherit; }
 
-        /* ==========================================================================
-           WINDOW CONTROLS & OVERLAY (DESKTOP SUPPORT)
-           ========================================================================== */
         .glass { background: var(--bg-panel); backdrop-filter: blur(var(--blur-intensity)); border: 1px solid var(--border-light); box-shadow: var(--shadow-soft); opacity: var(--window-opacity); }
         #app-window { position: absolute; width: 900px; height: 600px; min-width: 600px; min-height: 400px; border-radius: var(--radius-window); display: flex; flex-direction: column; overflow: hidden; transition: opacity 0.2s, transform 0.2s; opacity: 0; transform: scale(0.95); z-index: 10; background: var(--bg-base); }
         #app-window.active { opacity: var(--window-opacity); transform: scale(1); }
@@ -67,11 +59,7 @@
 
         .app-body { display: flex; flex: 1; height: calc(100% - 40px); position: relative; overflow: hidden;}
 
-        /* ==========================================================================
-           SIDEBAR & CONTACTS
-           ========================================================================== */
         .sidebar { width: 350px; border-right: 1px solid var(--border-light); display: flex; flex-direction: column; background: transparent; z-index: 5;}
-        
         .sidebar-header { padding: 15px; display: flex; flex-direction: column; gap: 15px; }
         .sidebar-top-row { display: flex; align-items: center; justify-content: space-between; user-select: none; }
         .app-brand { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; color: var(--text-muted); }
@@ -121,11 +109,7 @@
 
         .sidebar-footer { padding: 15px; background: rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-top: 1px solid var(--border-light); }
 
-        /* ==========================================================================
-           CHAT AREA & MESSAGES
-           ========================================================================== */
         .chat-area { flex: 1; display: flex; flex-direction: column; position: relative; background: transparent; z-index: 6;}
-        
         .chat-bg-glow { position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(30, 27, 56, 0.2) 0%, transparent 70%), radial-gradient(circle at 100% 100%, rgba(0, 106, 97, 0.1) 0%, transparent 50%); pointer-events: none; z-index: 0; background-size: cover; background-position: center; }
 
         .chat-header { padding: 12px 20px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); z-index: 2; backdrop-filter: blur(10px); }
@@ -177,9 +161,6 @@
         .dot { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: popIn 1.4s infinite ease-in-out both; }
         .dot:nth-child(1) { animation-delay: -0.32s; } .dot:nth-child(2) { animation-delay: -0.16s; }
 
-        /* ==========================================================================
-           REACTION BAR & CONTEXT MENU
-           ========================================================================== */
         .btn-msg-menu { position: absolute; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; background: var(--bg-panel); border: 1px solid var(--border-light); color: var(--text-muted); opacity: 0; transition: 0.2s; display: flex; align-items: center; justify-content: center; z-index: 5;}
         .message-wrap.me .btn-msg-menu { left: -40px; }
         .message-wrap.them .btn-msg-menu { right: -40px; }
@@ -206,36 +187,16 @@
         .context-item:hover { background: rgba(255,255,255,0.05); color: var(--accent-cyan); }
         .context-item.danger:hover { background: rgba(255, 95, 86, 0.1); color: #FF5F56; }
 
-        /* ==========================================================================
-           PILL-SHAPED INPUT AREA
-           ========================================================================== */
         .chat-input-wrapper { background: rgba(0,0,0,0.6); padding: 10px 15px 20px 15px; position:relative; z-index: 2; display: flex; align-items: flex-end; gap: 10px; backdrop-filter: blur(15px); border-top: 1px solid var(--border-light);}
-        
         .input-pill { flex: 1; background: var(--bg-input); border: 1px solid var(--border-light); border-radius: 24px; display: flex; align-items: flex-end; padding: 4px 8px; box-shadow: var(--shadow-soft); transition: 0.2s;}
         .input-pill:focus-within { border-color: var(--accent-cyan); }
         
         .chat-input { 
-            flex: 1; 
-            background: transparent; 
-            border: none; 
-            padding: 10px 5px; 
-            color: var(--text-main); 
-            min-height: 40px; 
-            max-height: 120px; 
-            overflow-y: auto; 
-            line-height: 1.4; 
-            font-size: 14px; 
-            word-break: break-word; 
-            white-space: pre-wrap; 
-            user-select: text; 
-            -webkit-user-select: text; 
+            flex: 1; background: transparent; border: none; padding: 10px 5px; color: var(--text-main); 
+            min-height: 40px; max-height: 120px; overflow-y: auto; line-height: 1.4; font-size: 14px; 
+            word-break: break-word; white-space: pre-wrap; user-select: text; -webkit-user-select: text; 
         }
-        .chat-input[contenteditable]:empty::before { 
-            content: attr(data-placeholder); 
-            color: var(--text-muted); 
-            pointer-events: none; 
-            display: block; 
-        }
+        .chat-input[contenteditable]:empty::before { content: attr(data-placeholder); color: var(--text-muted); pointer-events: none; display: block; }
         .chat-input:focus { outline: none; }
 
         .btn-inline { width: 36px; height: 36px; border-radius: 50%; color: var(--text-muted); flex-shrink: 0; display:flex; align-items:center; justify-content:center; cursor: pointer; transition: 0.2s;}
@@ -248,9 +209,6 @@
 
         .recording-overlay { display: none; background: rgba(255, 95, 86, 0.1); border: 1px solid rgba(255, 95, 86, 0.3); border-radius: 24px; padding: 0 15px; height: 44px; align-items: center; justify-content: space-between; flex: 1; }
 
-        /* ==========================================================================
-           MODALS, LIGHTBOX & SETTINGS
-           ========================================================================== */
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--bg-panel); border: 1px solid var(--accent-cyan); color: var(--text-main); padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow-glow); opacity: 0; pointer-events: none; transition: 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28); z-index: 2000;}
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -272,9 +230,7 @@
         .lightbox-overlay.show { opacity:1; }
         .lightbox-img { max-width:90%; max-height:90%; border-radius:12px; box-shadow:var(--shadow-glow); object-fit:contain; transform-origin: center center; cursor: grab; }
 
-        /* Direct Camera Selfie Mirroring CSS */
         #camera-preview.mirror { transform: scaleX(-1); }
-
         .highlight-anim { animation: highlightFlash 2s ease-out; }
         
         #floating-bubble { position: absolute; width: 60px; height: 60px; border-radius: 50%; background: var(--bg-panel); backdrop-filter: blur(20px); border: 2px solid var(--accent-cyan); box-shadow: var(--shadow-glow); display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 1000; transition: transform 0.2s; opacity: 0; pointer-events: none; transform: scale(0.5); }
@@ -535,9 +491,7 @@
             <span class="react-btn-float" data-emoji="🙏">🙏</span>
             <div class="react-btn-add" id="btn-more-emojis"><svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div>
         </div>
-        <div class="extended-emoji-grid" id="extended-emoji-grid">
-            <!-- Populated by JS -->
-        </div>
+        <div class="extended-emoji-grid" id="extended-emoji-grid"></div>
     </div>
 
     <!-- Context Menu -->
@@ -652,10 +606,9 @@
         </div>
     </div>
 
-    <!-- Call Screen Overlay with Mic Mute, Speaker & Recording -->
+    <!-- Call Screen Overlay -->
     <div id="call-overlay" class="panel-overlay" style="z-index: 2000;">
         <div class="modal-box" style="padding:0; height:500px; overflow:hidden; background:#000; position:relative; border-radius:24px;">
-            
             <div style="z-index:10; position:absolute; top:20px; left:20px; display:flex; gap:10px;">
                 <button id="btn-switch-cam" class="btn-inline" style="background:rgba(255,255,255,0.2); color:#fff; display:none; backdrop-filter:blur(5px);" title="Switch Camera"><svg viewBox="0 0 24 24"><path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 11.5V13H9v2.5L5.5 12 9 8.5V11h6V8.5l3.5 3.5-3.5 3.5z"/></svg></button>
                 <div id="call-rec-indicator" style="display:none; align-items:center; gap:6px; background:rgba(255,95,86,0.3); border:1px solid #FF5F56; padding:4px 12px; border-radius:12px; color:#FF5F56; font-size:11px; font-weight:bold;">
@@ -672,7 +625,6 @@
                 <p id="call-status" style="color:var(--text-muted); font-size:14px;">Calling...</p>
             </div>
 
-            <!-- In-Call Control Bar -->
             <div style="z-index:10; position:absolute; bottom:20px; left:50%; transform:translateX(-50%); display:flex; gap:15px; align-items:center; background:rgba(0,0,0,0.6); padding:10px 20px; border-radius:40px; backdrop-filter:blur(10px); border:1px solid var(--border-light);">
                 <button id="btn-toggle-mic" class="btn-inline" style="background:rgba(255,255,255,0.1); color:#fff;" title="Mute/Unmute Mic"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></button>
                 <button id="btn-toggle-speaker" class="btn-inline" style="background:rgba(255,255,255,0.1); color:#fff;" title="Speaker / Audio Output"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></button>
@@ -683,9 +635,8 @@
         </div>
     </div>
 
-    <!-- Expanded Lightbox Overlay with Edit/Draw, Share & Forward -->
+    <!-- Expanded Lightbox Overlay -->
     <div id="lightbox-overlay" class="lightbox-overlay">
-        <!-- Lightbox Action Bar -->
         <div class="lb-toolbar" style="position:absolute; top:20px; right:20px; z-index:100; display:flex; gap:10px; background:rgba(0,0,0,0.6); padding:8px 14px; border-radius:30px; backdrop-filter:blur(10px); border:1px solid var(--border-light);">
             <button class="btn-inline" id="btn-lb-draw" title="Draw / Edit" style="color:#fff;"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
             <button class="btn-inline" id="btn-lb-share" title="Share" style="color:#fff;"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg></button>
@@ -693,7 +644,6 @@
             <button class="btn-inline" id="btn-close-lightbox" style="color:#FF5F56;"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
         </div>
 
-        <!-- Drawing Color Controls -->
         <div id="lb-draw-controls" style="position:absolute; bottom:30px; left:50%; transform:translateX(-50%); z-index:100; display:none; gap:12px; background:rgba(0,0,0,0.8); padding:10px 20px; border-radius:30px; align-items:center; border:1px solid var(--border-light);">
             <input type="color" id="lb-draw-color" value="#00E5FF" style="width:32px; height:32px; border:none; border-radius:50%; cursor:pointer; background:none;">
             <input type="range" id="lb-draw-size" min="2" max="20" value="5" style="width:80px;">
@@ -708,7 +658,6 @@
     </div>
 
     <div class="toast" id="global-toast">Notification</div>
-
     <div id="floating-bubble"><svg viewBox="0 0 24 24" style="color:var(--accent-cyan)"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg><div class="badge" id="bubble-badge">1</div></div>
 
     <script>
@@ -727,10 +676,14 @@
                 return s;
             },
             fileToBase64: (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); }),
+            
+            // Memory Leak Fix: Auto-revoke Object URL after image processing
             compressImage: (file, maxWidth = 1280) => new Promise((resolve, reject) => {
                 if(!file.type.startsWith('image/') || file.type === 'image/gif') return Utils.fileToBase64(file).then(resolve).catch(reject);
                 const img = new Image();
+                const objectUrl = URL.createObjectURL(file);
                 img.onload = () => {
+                    URL.revokeObjectURL(objectUrl);
                     const canvas = document.createElement('canvas');
                     let w = img.width, h = img.height;
                     if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
@@ -739,8 +692,13 @@
                     ctx.drawImage(img, 0, 0, w, h);
                     resolve(canvas.toDataURL('image/jpeg', 0.8));
                 };
-                img.onerror = reject; img.src = URL.createObjectURL(file);
+                img.onerror = (err) => {
+                    URL.revokeObjectURL(objectUrl);
+                    reject(err);
+                };
+                img.src = objectUrl;
             }),
+
             fetchLinkPreview: async (url) => {
                 try {
                     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
@@ -750,12 +708,7 @@
                             if (ytRes.ok) {
                                 const ytData = await ytRes.json();
                                 if (ytData && ytData.title) {
-                                    return {
-                                        title: ytData.title,
-                                        desc: ytData.author_name || "YouTube Video",
-                                        img: `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`,
-                                        url: url
-                                    };
+                                    return { title: ytData.title, desc: ytData.author_name || "YouTube Video", img: `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`, url: url };
                                 }
                             }
                         } catch (e) { console.warn("Noembed failed, trying Microlink..."); }
@@ -764,22 +717,10 @@
                     if (response.ok) {
                         const json = await response.json();
                         if (json.status === 'success' && json.data) {
-                            return {
-                                title: json.data.title || (ytMatch ? "YouTube Video" : "Link Preview"),
-                                desc: json.data.description || null,
-                                img: json.data.image ? json.data.image.url : (ytMatch ? `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg` : null),
-                                url: json.data.url || url
-                            };
+                            return { title: json.data.title || (ytMatch ? "YouTube Video" : "Link Preview"), desc: json.data.description || null, img: json.data.image ? json.data.image.url : (ytMatch ? `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg` : null), url: json.data.url || url };
                         }
                     }
-                    if (ytMatch && ytMatch[1]) {
-                        return {
-                            title: "YouTube Video",
-                            desc: url,
-                            img: `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`,
-                            url: url
-                        };
-                    }
+                    if (ytMatch && ytMatch[1]) { return { title: "YouTube Video", desc: url, img: `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`, url: url }; }
                     return null;
                 } catch(e) { return null; }
             }
@@ -808,12 +749,19 @@
                 for(let i=0; i<combined.length; i+=32768) charArr.push(String.fromCharCode.apply(null, combined.subarray(i, i+32768)));
                 return btoa(charArr.join(""));
             }
+
+            // Safe Decryption with Frame Corruption Catching
             async decrypt(b64, key) {
                 if(!key) return b64;
-                const bin = atob(b64); const u8 = new Uint8Array(bin.length);
-                for(let i=0; i<bin.length; i++) u8[i] = bin.charCodeAt(i);
-                const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: u8.slice(0, 12) }, key, u8.slice(12));
-                return new TextDecoder().decode(decrypted);
+                try {
+                    const bin = atob(b64); const u8 = new Uint8Array(bin.length);
+                    for(let i=0; i<bin.length; i++) u8[i] = bin.charCodeAt(i);
+                    const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: u8.slice(0, 12) }, key, u8.slice(12));
+                    return new TextDecoder().decode(decrypted);
+                } catch(e) {
+                    console.error("Decryption error:", e);
+                    return "⚠️ [Encrypted message failed to decrypt]";
+                }
             }
         }
 
@@ -844,12 +792,18 @@
             async saveContact(c) { return this.#tx('contacts', 'readwrite', s => s.put(c)); }
             async getContact(id) { return this.#tx('contacts', 'readonly', s => s.get(id)); }
             async getContacts() { return this.#tx('contacts', 'readonly', s => s.getAll()); }
+            
+            // Transaction Bug Fix: Uses a single combined multi-store transaction block
             async delContact(id) { 
-                await this.#tx('contacts', 'readwrite', s => s.delete(id));
-                const tx = this.#db.transaction('messages', 'readwrite');
-                const req = tx.objectStore('messages').index('friendId').openCursor(IDBKeyRange.only(id));
+                const tx = this.#db.transaction(['contacts', 'messages'], 'readwrite');
+                tx.objectStore('contacts').delete(id);
+                const msgStore = tx.objectStore('messages');
+                const idx = msgStore.index('friendId');
+                const req = idx.openCursor(IDBKeyRange.only(id));
                 req.onsuccess = (e) => { const c = e.target.result; if(c) { c.delete(); c.continue(); } };
+                return new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
             }
+
             async migrateFriend(oldId, newFriendData) {
                 if (oldId === newFriendData.id) return this.saveContact(newFriendData);
                 const tx = this.#db.transaction(['contacts', 'messages'], 'readwrite');
@@ -959,10 +913,18 @@
                 }
             }
 
+            // Chunk Processing with 60-second TTL Memory Garbage Collection
             handleIncomingExternalData(peerId, d) {
                 try {
                     if (d._chunk) {
-                        if (!this.#chunkBuffers.has(d.id)) this.#chunkBuffers.set(d.id, { buf: [], t: d.t, count: 0 });
+                        if (!this.#chunkBuffers.has(d.id)) {
+                            this.#chunkBuffers.set(d.id, { 
+                                buf: [], 
+                                t: d.t, 
+                                count: 0,
+                                timer: setTimeout(() => this.#chunkBuffers.delete(d.id), 60000)
+                            });
+                        }
                         const chunkData = this.#chunkBuffers.get(d.id); 
                         
                         if (!chunkData.buf[d.i]) {
@@ -974,6 +936,7 @@
                         this.#app.onTransferProgress('incoming', pct);
 
                         if (chunkData.count === chunkData.t) { 
+                            clearTimeout(chunkData.timer);
                             const fullData = JSON.parse(chunkData.buf.join('')); 
                             this.#chunkBuffers.delete(d.id); 
                             setTimeout(() => this.#app.onTransferComplete('incoming'), 500);
@@ -998,7 +961,14 @@
                 c.on('data', async (d) => {
                     try {
                         if (d._chunk) {
-                            if (!this.#chunkBuffers.has(d.id)) this.#chunkBuffers.set(d.id, { buf: [], t: d.t, count: 0 });
+                            if (!this.#chunkBuffers.has(d.id)) {
+                                this.#chunkBuffers.set(d.id, { 
+                                    buf: [], 
+                                    t: d.t, 
+                                    count: 0,
+                                    timer: setTimeout(() => this.#chunkBuffers.delete(d.id), 60000)
+                                });
+                            }
                             const chunkData = this.#chunkBuffers.get(d.id); 
                             
                             if (!chunkData.buf[d.i]) {
@@ -1010,6 +980,7 @@
                             this.#app.onTransferProgress('incoming', pct);
 
                             if (chunkData.count === chunkData.t) { 
+                                clearTimeout(chunkData.timer);
                                 const fullData = JSON.parse(chunkData.buf.join('')); 
                                 this.#chunkBuffers.delete(d.id); 
                                 setTimeout(() => this.#app.onTransferComplete('incoming'), 500);
@@ -1124,7 +1095,7 @@
             }
         }
 
-        // --- OFFLINE LAN WEBRTC PAIRING MANAGER (FAIL-SAFE DUAL ENCODER) ---
+        // --- OFFLINE LAN WEBRTC PAIRING MANAGER (WITH SDP COMPRESSION & FIXES) ---
         class LANPairManager {
             constructor(app) {
                 this.app = app;
@@ -1136,7 +1107,15 @@
                 this.targetPasteMode = null;
             }
 
-            // Universal Fail-Safe Payload Encoder (Works on both QR Scan and Manual Paste)
+            // Strips SDP overhead to reduce QR Code dot density by ~60%
+            compressSDP(sdp) {
+                return sdp
+                    .replace(/a=fmtp:.*\r\n/g, '')
+                    .replace(/a=rtcp-fb:.*\r\n/g, '')
+                    .replace(/a=extmap:.*\r\n/g, '')
+                    .replace(/a=ssrc:.*\r\n/g, '');
+            }
+
             encodePayload(obj) {
                 try {
                     const json = JSON.stringify(obj);
@@ -1149,11 +1128,9 @@
             decodePayload(str) {
                 const clean = str.trim().replace(/[\r\n\s]/g, '');
                 try {
-                    // Try decoding Base64 string first
                     const json = decodeURIComponent(escape(atob(clean)));
                     return JSON.parse(json);
                 } catch(e) {
-                    // Fallback if raw JSON was pasted
                     return JSON.parse(clean);
                 }
             }
@@ -1183,7 +1160,8 @@
                     }
                 });
 
-                const payload = { i: this.app.myId, t: this.pc.localDescription.type, s: this.pc.localDescription.sdp };
+                const minSDP = this.compressSDP(this.pc.localDescription.sdp);
+                const payload = { i: this.app.myId, t: this.pc.localDescription.type, s: minSDP };
                 this.currentOfferPayload = this.encodePayload(payload);
                 return this.currentOfferPayload;
             }
@@ -1237,7 +1215,8 @@
                         }
                     });
 
-                    const payload = { i: this.app.myId, t: this.pc.localDescription.type, s: this.pc.localDescription.sdp };
+                    const minSDP = this.compressSDP(this.pc.localDescription.sdp);
+                    const payload = { i: this.app.myId, t: this.pc.localDescription.type, s: minSDP };
                     this.currentAnswerPayload = this.encodePayload(payload);
                     return this.currentAnswerPayload;
                 } catch(e) {
@@ -1284,12 +1263,21 @@
                 if (channel.readyState === 'open') channel.onopen();
             }
 
+            // Full Scanner Cleanup Fix
             async stopScanner() {
                 if (this.html5QrCode) {
-                    try { await this.html5QrCode.stop(); } catch(e){}
+                    try {
+                        if (this.html5QrCode.isScanning) {
+                            await this.html5QrCode.stop();
+                        }
+                        this.html5QrCode.clear();
+                    } catch(e) {
+                        console.warn("Scanner cleanup warning:", e);
+                    }
                     this.html5QrCode = null;
                 }
-                document.getElementById('lan-qr-reader').style.display = 'none';
+                const readerDiv = document.getElementById('lan-qr-reader');
+                if (readerDiv) readerDiv.style.display = 'none';
             }
         }
 
@@ -1311,11 +1299,9 @@
 
                 this.currentCall = null; this.localStream = null; this.camFacingMode = 'user'; 
 
-                // Direct Camera State
                 this.cameraStream = null;
                 this.cameraFacingMode = 'environment';
 
-                // Call Controls State
                 this.callRecorder = null;
                 this.callChunks = [];
                 this.isMicMuted = false;
@@ -1335,7 +1321,6 @@
                 
                 if('Notification' in window && Notification.permission === "default") Notification.requestPermission();
 
-                // --- FIREBASE INITIALIZATION ---
                 if (typeof firebase !== 'undefined') {
                     try {
                         firebase.initializeApp({
@@ -1369,7 +1354,6 @@
 
                 window.history.pushState({ page: 'home' }, "");
 
-                // Catch OS Share Sheet data
                 const params = new URLSearchParams(window.location.search);
                 if (params.get('shared') === '1') {
                     window.history.replaceState({}, document.title, window.location.pathname);
@@ -1464,7 +1448,6 @@
                 this.ui.showModal('contact-modal');
             }
 
-            // --- DIRECT CAMERA METHODS (With Selfie Preview Mirroring) ---
             async openCamera() {
                 try {
                     if (this.cameraStream) this.cameraStream.getTracks().forEach(t => t.stop());
@@ -1559,7 +1542,6 @@
                 this.store.get('myStatus', 'Online').then(s => { statInp.value=s; document.getElementById('my-status-display').innerText=s; });
                 statInp.onchange = () => { this.store.set('myStatus', statInp.value); document.getElementById('my-status-display').innerText = statInp.value; this.net.broadcastProfile({ status: statInp.value }); };
 
-                // Profile Picture Fullscreen Zoom & Change Event Listeners
                 document.getElementById('my-sidebar-avatar').onclick = async (e) => {
                     e.stopPropagation();
                     const myAv = await this.store.get('myAvatar');
@@ -1589,7 +1571,7 @@
                     }
                 };
 
-                // --- OFFLINE LAN WEBRTC PAIRING EVENT LISTENERS ---
+                // --- OFFLINE LAN WEBRTC SCANNER EVENT LISTENERS (FULLY PATCHED) ---
                 document.getElementById('btn-open-lan-modal').onclick = () => {
                     document.getElementById('lan-step-select').style.display = 'flex';
                     document.getElementById('lan-step-host').style.display = 'none';
@@ -1622,19 +1604,27 @@
                     }
                 };
 
-                document.getElementById('btn-scan-answer-qr').onclick = () => {
+                document.getElementById('btn-scan-answer-qr').onclick = async () => {
+                    await this.lan.stopScanner();
                     const readerDiv = document.getElementById('lan-qr-reader');
                     readerDiv.style.display = 'block';
-                    this.lan.html5QrCode = new Html5Qrcode("lan-qr-reader");
-                    this.lan.html5QrCode.start(
-                        { facingMode: "environment" },
-                        { fps: 15, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
-                        async (decodedText) => {
-                            await this.lan.stopScanner();
-                            this.lan.handleHostScanAnswer(decodedText);
-                        },
-                        () => {}
-                    );
+
+                    requestAnimationFrame(async () => {
+                        try {
+                            this.lan.html5QrCode = new Html5Qrcode("lan-qr-reader");
+                            await this.lan.html5QrCode.start(
+                                { facingMode: "environment" },
+                                { fps: 10, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
+                                async (decodedText) => {
+                                    await this.lan.stopScanner();
+                                    this.lan.handleHostScanAnswer(decodedText);
+                                },
+                                () => {}
+                            );
+                        } catch(err) {
+                            this.ui.showToast("Camera error: " + (err.message || err));
+                        }
+                    });
                 };
 
                 document.getElementById('btn-paste-answer-str').onclick = () => {
@@ -1648,26 +1638,34 @@
                     document.getElementById('lan-step-join').style.display = 'flex';
                 };
 
-                document.getElementById('btn-start-join-scan').onclick = () => {
+                document.getElementById('btn-start-join-scan').onclick = async () => {
+                    await this.lan.stopScanner();
                     const readerDiv = document.getElementById('lan-qr-reader');
                     readerDiv.style.display = 'block';
-                    this.lan.html5QrCode = new Html5Qrcode("lan-qr-reader");
-                    this.lan.html5QrCode.start(
-                        { facingMode: "environment" },
-                        { fps: 15, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
-                        async (decodedText) => {
-                            await this.lan.stopScanner();
-                            const answerStr = await this.lan.handleJoinerScanOffer(decodedText);
-                            if (answerStr) {
-                                document.getElementById('lan-join-answer-wrap').style.display = 'flex';
-                                document.getElementById('lan-qrcode-answer').innerHTML = '';
-                                new QRCode(document.getElementById('lan-qrcode-answer'), {
-                                    text: answerStr, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.L
-                                });
-                            }
-                        },
-                        () => {}
-                    );
+
+                    requestAnimationFrame(async () => {
+                        try {
+                            this.lan.html5QrCode = new Html5Qrcode("lan-qr-reader");
+                            await this.lan.html5QrCode.start(
+                                { facingMode: "environment" },
+                                { fps: 10, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
+                                async (decodedText) => {
+                                    await this.lan.stopScanner();
+                                    const answerStr = await this.lan.handleJoinerScanOffer(decodedText);
+                                    if (answerStr) {
+                                        document.getElementById('lan-join-answer-wrap').style.display = 'flex';
+                                        document.getElementById('lan-qrcode-answer').innerHTML = '';
+                                        new QRCode(document.getElementById('lan-qrcode-answer'), {
+                                            text: answerStr, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.L
+                                        });
+                                    }
+                                },
+                                () => {}
+                            );
+                        } catch(err) {
+                            this.ui.showToast("Camera error: " + (err.message || err));
+                        }
+                    });
                 };
 
                 document.getElementById('btn-paste-offer-str').onclick = () => {
@@ -1775,7 +1773,6 @@
                 document.getElementById('btn-attach').onclick = () => document.getElementById('file-input').click();
                 document.getElementById('file-input').onchange = async (e) => { const file = e.target.files[0]; if(!file) return; if (file.type.startsWith('video/')) { const b64 = await Utils.fileToBase64(file); this.sendOutbound({ type: 'video', data: b64, name: file.name }); } else if (file.type.startsWith('image/')) { const b64 = await Utils.compressImage(file); this.sendOutbound({ type: 'image', data: b64, name: file.name }); } else { const b64 = await Utils.fileToBase64(file); this.sendOutbound({ type: 'file', data: b64, name: file.name }); } };
 
-                // Direct Camera Overlay Bindings
                 document.getElementById('btn-open-camera').onclick = () => this.openCamera();
                 document.getElementById('btn-close-camera').onclick = () => this.closeCamera();
                 document.getElementById('btn-flip-instant-cam').onclick = () => {
@@ -1847,7 +1844,6 @@
 
                 document.getElementById('btn-close-lightbox').onclick = () => this.closeLightbox();
 
-                // --- ACCURATE LIGHTBOX PINCH-ZOOM & DRAWING HANDLERS ---
                 const lbImg = document.getElementById('lightbox-img');
                 const lbCanvas = document.getElementById('lightbox-canvas');
                 const ctx = lbCanvas.getContext('2d');
@@ -1871,7 +1867,6 @@
                     };
                 };
 
-                // Touch Events for Mobile
                 document.getElementById('lightbox-overlay').addEventListener('touchstart', (e) => {
                     if (e.touches.length === 2) {
                         initialPinchDist = Math.hypot(
@@ -1923,7 +1918,6 @@
                     isDrawing = false;
                 });
 
-                // Desktop Mouse Drawing Handlers
                 lbCanvas.onmousedown = (e) => {
                     if (lbCanvas.style.display === 'block') {
                         isDrawing = true;
@@ -1952,7 +1946,6 @@
                 window.addEventListener('mousemove', (e) => { if(!this.lbPanning || document.getElementById('lightbox-overlay').style.display !== 'flex') return; this.lbPanX = e.clientX - this.lbStartX; this.lbPanY = e.clientY - this.lbStartY; setLbTransform(); });
                 lbImg.onwheel = (e) => { if(document.getElementById('lightbox-overlay').style.display !== 'flex') return; e.preventDefault(); const xs = (e.clientX - this.lbPanX) / this.lbScale, ys = (e.clientY - this.lbPanY) / this.lbScale; const delta = (e.wheelDelta ? -e.wheelDelta : e.deltaY); (delta > 0) ? (this.lbScale /= 1.2) : (this.lbScale *= 1.2); this.lbPanX = e.clientX - xs * this.lbScale; this.lbPanY = e.clientY - ys * this.lbScale; setLbTransform(); };
 
-                // Lightbox Draw Toggle
                 document.getElementById('btn-lb-draw').onclick = () => {
                     const isCanvasOpen = lbCanvas.style.display === 'block';
                     if (!isCanvasOpen) {
@@ -1973,7 +1966,6 @@
                     ctx.clearRect(0, 0, lbCanvas.width, lbCanvas.height);
                 };
 
-                // Save Drawn Image & Send to Active Chat
                 document.getElementById('btn-lb-save-draw').onclick = () => {
                     const finalCanvas = document.createElement('canvas');
                     finalCanvas.width = lbCanvas.width;
@@ -1988,7 +1980,6 @@
                     this.ui.showToast("Edited image sent!");
                 };
 
-                // Native Share Button
                 document.getElementById('btn-lb-share').onclick = async () => {
                     try {
                         const blob = await (await fetch(lbImg.src)).blob();
@@ -2001,20 +1992,17 @@
                     } catch (e) { this.ui.showToast("Share cancelled"); }
                 };
 
-                // Forward Image Button
                 document.getElementById('btn-lb-forward').onclick = () => {
                     this.pendingShareFile = lbImg.src;
                     this.closeLightbox();
                     this.ui.showToast("Select a contact to forward image to");
                 };
 
-                // --- IN-CALL FEATURE HANDLERS ---
                 document.getElementById('btn-voice-call').onclick = () => this.startCall(false);
                 document.getElementById('btn-video-call').onclick = () => this.startCall(true);
                 document.getElementById('btn-end-call').onclick = () => this.endCall(true);
                 document.getElementById('btn-switch-cam').onclick = () => this.switchCamera();
 
-                // Mic Mute Toggle
                 document.getElementById('btn-toggle-mic').onclick = () => {
                     if (this.localStream) {
                         const audioTrack = this.localStream.getAudioTracks()[0];
@@ -2027,7 +2015,6 @@
                     }
                 };
 
-                // Speaker Toggle
                 document.getElementById('btn-toggle-speaker').onclick = async () => {
                     const remoteVideo = document.getElementById('remote-video');
                     if ('setSinkId' in remoteVideo) {
@@ -2046,7 +2033,6 @@
                     }
                 };
 
-                // Call Recording Toggle
                 document.getElementById('btn-record-call').onclick = () => {
                     const recBtn = document.getElementById('btn-record-call');
                     const recInd = document.getElementById('call-rec-indicator');
@@ -2171,7 +2157,6 @@
 
             async startCall(isVideo) {
                 if(!this.activeContact || !this.net.isConnected(this.activeContact)) {
-                    // Send wake-up ping for calls
                     this.store.getContact(this.activeContact).then(cInfo => {
                         if (cInfo && cInfo.fcmToken) {
                             fetch('https://nexus-chat-three-ashen.vercel.app/api/push', {
@@ -2327,7 +2312,6 @@
 
             async selectContact(c) {
                 this.activeContact = c.id; this.renderContacts();
-                
                 window.history.pushState({ page: 'chat', id: c.id }, "");
 
                 document.getElementById('app-body').classList.add('chat-active');
@@ -2422,7 +2406,6 @@
                         const success = await this.net.send(this.activeContact, {type:'msg', payload:m}, (pct) => { const pb = document.getElementById(`prog-bar-${m.id}`); const pt = document.getElementById(`prog-txt-${m.id}`); if(pb) pb.style.width = `${pct}%`; if(pt) pt.innerText = `${pct}%`; });
                         if(success) { m.status = 'sent'; await this.store.saveMsg(m); this.renderMsg(m); }
                     } else {
-                        // Trigger Push Notification when peer is offline
                         const cInfo = await this.store.getContact(this.activeContact);
                         if (cInfo && cInfo.fcmToken) {
                             fetch('https://nexus-chat-three-ashen.vercel.app/api/push', {
@@ -2578,7 +2561,6 @@
 
                 const inner = w.querySelector('.message-inner');
                 if(!m.isDeleted) {
-                    
                     let startX = 0, currentX = 0;
                     const bubbleNode = inner.querySelector('.bubble');
                     
@@ -2615,7 +2597,6 @@
             }
         }
 
-        // Register Service Worker first to prevent deadlock in start()
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
                 .then(reg => console.log('Service Worker Registered!', reg.scope))
