@@ -47,8 +47,8 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// Cache bumped to v16.0 to force cache renewal
-const CACHE_NAME = 'nexus-secure-v16.0';
+// Cache bumped to v16.1 for stability
+const CACHE_NAME = 'nexus-secure-v16.1';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -63,7 +63,16 @@ const ASSETS_TO_CACHE = [
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
-    event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE)));
+    event.waitUntil(
+        caches.open(CACHE_NAME).then(async (cache) => {
+            // Promise.allSettled guarantees core assets cache even if external CDN fetch fails
+            await Promise.allSettled(
+                ASSETS_TO_CACHE.map(url => 
+                    cache.add(url).catch(err => console.warn(`Cache pre-fetch skipped for ${url}:`, err))
+                )
+            );
+        })
+    );
 });
 
 self.addEventListener('activate', (event) => {
