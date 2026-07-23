@@ -47,8 +47,8 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// Cache bumped to v16.1 for stability
-const CACHE_NAME = 'nexus-secure-v16.1';
+// Cache bumped to v16.2 for automatic refresh
+const CACHE_NAME = 'nexus-secure-v16.2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -65,7 +65,6 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
-            // Promise.allSettled guarantees core assets cache even if external CDN fetch fails
             await Promise.allSettled(
                 ASSETS_TO_CACHE.map(url => 
                     cache.add(url).catch(err => console.warn(`Cache pre-fetch skipped for ${url}:`, err))
@@ -90,7 +89,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // Intercept OS File Sharing
+    // Intercept OS File Sharing (PWA Web Share Target)
     if (event.request.method === 'POST' && event.request.url.includes('index.html')) {
         event.respondWith((async () => {
             try {
@@ -117,9 +116,25 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Navigation (index.html) Network-First Strategy to ensure code updates deploy immediately
+    if (event.request.mode === 'navigate') {
+        event.respondWith(
+            fetch(event.request)
+                .then(networkResponse => {
+                    return caches.open(CACHE_NAME).then(cache => {
+                        cache.put('./index.html', networkResponse.clone());
+                        return networkResponse;
+                    });
+                })
+                .catch(() => caches.match('./index.html', { ignoreSearch: true }))
+        );
+        return;
+    }
+
+    // Static Assets Cache-First Strategy
     event.respondWith(
-        caches.match(event.request).then((response) => {
+        caches.match(event.request, { ignoreSearch: true }).then((response) => {
             return response || fetch(event.request);
-        }).catch(() => caches.match('./index.html'))
+        }).catch(() => caches.match('./index.html', { ignoreSearch: true }))
     );
 });
