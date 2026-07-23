@@ -427,6 +427,7 @@
                 <button class="btn-inline" id="btn-close-lan-modal"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
             </div>
             
+            <!-- Step Selection View -->
             <div id="lan-step-select" style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
                 <p style="font-size:12px; color:var(--text-muted); line-height:1.4;">Pair directly over local Wi-Fi without internet using fast QR code exchange.</p>
                 <button class="btn-primary" id="btn-lan-host">Option A: Host Connection (Show QR)</button>
@@ -436,7 +437,7 @@
             <!-- Host View -->
             <div id="lan-step-host" style="display:none; flex-direction:column; align-items:center; gap:12px;">
                 <div style="font-size:12px; font-weight:bold; color:var(--accent-cyan);">1. Have your friend scan this QR Code</div>
-                <div id="lan-qrcode-offer" style="background:#fff; padding:12px; border-radius:12px; min-width:200px; min-height:200px; display:flex; align-items:center; justify-content:center;">Generating QR...</div>
+                <div id="lan-qrcode-offer" style="background:#fff; padding:12px; border-radius:12px; min-width:220px; min-height:220px; display:flex; align-items:center; justify-content:center;">Generating QR...</div>
                 <button class="btn-outline" id="btn-copy-offer-str" style="font-size:11px; width:100%;">Copy Host Code Text</button>
                 <hr style="width:100%; border-color:var(--border-light); margin:5px 0;">
                 <div style="font-size:12px; font-weight:bold; color:var(--accent-cyan);">2. Scan your friend's Answer QR Code</div>
@@ -447,7 +448,6 @@
             <!-- Joiner View -->
             <div id="lan-step-join" style="display:none; flex-direction:column; align-items:center; gap:12px;">
                 <div style="font-size:12px; font-weight:bold; color:var(--accent-cyan);">Scan Host's Connection QR</div>
-                <div id="lan-qr-reader" style="width:100%; max-width:320px; min-height:250px; border-radius:12px; overflow:hidden; display:none;"></div>
                 <button class="btn-primary" id="btn-start-join-scan" style="width:100%;">Open Camera Scanner</button>
                 <button class="btn-outline" id="btn-paste-offer-str" style="width:100%; font-size:11px;">Or Paste Host Code</button>
                 
@@ -458,10 +458,18 @@
                 </div>
             </div>
 
+            <!-- Dedicated Visible Camera Scanner View -->
+            <div id="lan-step-scan" style="display:none; flex-direction:column; align-items:center; gap:12px; width:100%;">
+                <div id="lan-scan-title" style="font-size:12px; font-weight:bold; color:var(--accent-cyan);">Point camera at QR Code</div>
+                <div id="lan-qr-reader" style="width:100%; max-width:320px; min-height:250px; border-radius:12px; overflow:hidden; background:#000;"></div>
+                <button class="btn-outline" id="btn-cancel-scan" style="width:100%;">Cancel Scanner</button>
+            </div>
+
             <!-- Manual Text Paste Dialog -->
             <div id="lan-step-paste" style="display:none; flex-direction:column; gap:10px;">
                 <textarea class="code-box" id="lan-paste-input" rows="5" placeholder="Paste Code string here..."></textarea>
                 <button class="btn-primary" id="btn-lan-paste-submit">Process Code</button>
+                <button class="btn-outline" id="btn-lan-paste-back" style="font-size:11px;">Back</button>
             </div>
         </div>
     </div>
@@ -488,7 +496,7 @@
             <span class="react-btn-float" data-emoji="👍">👍</span>
             <span class="react-btn-float" data-emoji="😮">😮</span>
             <span class="react-btn-float" data-emoji="😢">😢</span>
-            <span class="react-btn-float" data-emoji="🙏">🙏</span>
+            <span class="react-btn-float" data-emoji="👑">👑</span>
             <div class="react-btn-add" id="btn-more-emojis"><svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div>
         </div>
         <div class="extended-emoji-grid" id="extended-emoji-grid"></div>
@@ -677,7 +685,6 @@
             },
             fileToBase64: (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); }),
             
-            // Memory Leak Fix: Auto-revoke Object URL after image processing
             compressImage: (file, maxWidth = 1280) => new Promise((resolve, reject) => {
                 if(!file.type.startsWith('image/') || file.type === 'image/gif') return Utils.fileToBase64(file).then(resolve).catch(reject);
                 const img = new Image();
@@ -750,7 +757,6 @@
                 return btoa(charArr.join(""));
             }
 
-            // Safe Decryption with Frame Corruption Catching
             async decrypt(b64, key) {
                 if(!key) return b64;
                 try {
@@ -793,7 +799,6 @@
             async getContact(id) { return this.#tx('contacts', 'readonly', s => s.get(id)); }
             async getContacts() { return this.#tx('contacts', 'readonly', s => s.getAll()); }
             
-            // Transaction Bug Fix: Uses a single combined multi-store transaction block
             async delContact(id) { 
                 const tx = this.#db.transaction(['contacts', 'messages'], 'readwrite');
                 tx.objectStore('contacts').delete(id);
@@ -913,7 +918,6 @@
                 }
             }
 
-            // Chunk Processing with 60-second TTL Memory Garbage Collection
             handleIncomingExternalData(peerId, d) {
                 try {
                     if (d._chunk) {
@@ -1095,7 +1099,7 @@
             }
         }
 
-        // --- OFFLINE LAN WEBRTC PAIRING MANAGER (WITH SDP COMPRESSION & FIXES) ---
+        // --- OPTIMIZED WEBRTC OFFLINE LAN PAIRING MANAGER ---
         class LANPairManager {
             constructor(app) {
                 this.app = app;
@@ -1105,15 +1109,53 @@
                 this.currentOfferPayload = null;
                 this.currentAnswerPayload = null;
                 this.targetPasteMode = null;
+                this.scanMode = null;
             }
 
-            // Strips SDP overhead to reduce QR Code dot density by ~60%
-            compressSDP(sdp) {
-                return sdp
-                    .replace(/a=fmtp:.*\r\n/g, '')
-                    .replace(/a=rtcp-fb:.*\r\n/g, '')
-                    .replace(/a=extmap:.*\r\n/g, '')
-                    .replace(/a=ssrc:.*\r\n/g, '');
+            packSDP(sdp, peerId, type) {
+                const ufrag = (sdp.match(/a=ice-ufrag:(.+)/) || [])[1] || '';
+                const pwd = (sdp.match(/a=ice-pwd:(.+)/) || [])[1] || '';
+                const fp = (sdp.match(/a=fingerprint:(.+)/) || [])[1] || '';
+                const setup = (sdp.match(/a=setup:(.+)/) || [])[1] || (type === 'offer' ? 'actpass' : 'active');
+                
+                const candidates = [];
+                const matches = sdp.match(/a=candidate:.+/g) || [];
+                for (const cand of matches) {
+                    candidates.push(cand.replace('a=candidate:', '').trim());
+                }
+                
+                return {
+                    i: peerId,
+                    t: type,
+                    u: ufrag.trim(),
+                    p: pwd.trim(),
+                    f: fp.trim(),
+                    r: setup.trim(),
+                    c: candidates
+                };
+            }
+
+            unpackSDP(packed) {
+                let sdp = `v=0\r\n` +
+                    `o=- ${Date.now()} 2 IN IP4 127.0.0.1\r\n` +
+                    `s=-\r\n` +
+                    `t=0 0\r\n` +
+                    `a=group:BUNDLE 0\r\n` +
+                    `m=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n` +
+                    `c=IN IP4 0.0.0.0\r\n` +
+                    `a=ice-ufrag:${packed.u}\r\n` +
+                    `a=ice-pwd:${packed.p}\r\n` +
+                    `a=fingerprint:${packed.f}\r\n` +
+                    `a=setup:${packed.r}\r\n` +
+                    `a=mid:0\r\n` +
+                    `a=sctp-port:5000\r\n`;
+                
+                if (packed.c && Array.isArray(packed.c)) {
+                    for (const cand of packed.c) {
+                        sdp += `a=candidate:${cand}\r\n`;
+                    }
+                }
+                return sdp;
             }
 
             encodePayload(obj) {
@@ -1121,7 +1163,7 @@
                     const json = JSON.stringify(obj);
                     return btoa(unescape(encodeURIComponent(json)));
                 } catch(e) {
-                    return JSON.stringify(obj);
+                    return typeof obj === 'string' ? obj : JSON.stringify(obj);
                 }
             }
 
@@ -1131,7 +1173,11 @@
                     const json = decodeURIComponent(escape(atob(clean)));
                     return JSON.parse(json);
                 } catch(e) {
-                    return JSON.parse(clean);
+                    try {
+                        return JSON.parse(clean);
+                    } catch(e2) {
+                        return clean;
+                    }
                 }
             }
 
@@ -1139,30 +1185,44 @@
                 return new RTCPeerConnection({ iceServers: [] });
             }
 
+            async waitForICEGathering(pc, timeoutMs = 3500) {
+                return new Promise(res => {
+                    if (pc.iceGatheringState === 'complete') return res();
+                    
+                    const stateHandler = () => {
+                        if (pc.iceGatheringState === 'complete') {
+                            cleanup();
+                            res();
+                        }
+                    };
+                    pc.addEventListener('icegatheringstatechange', stateHandler);
+
+                    const timer = setTimeout(() => {
+                        cleanup();
+                        res();
+                    }, timeoutMs);
+
+                    function cleanup() {
+                        clearTimeout(timer);
+                        pc.removeEventListener('icegatheringstatechange', stateHandler);
+                    }
+                });
+            }
+
             async createHostOffer() {
+                if (this.pc) {
+                    try { this.pc.close(); } catch(e) {}
+                }
                 this.pc = this.createPeerConnection();
                 this.dataChannel = this.pc.createDataChannel("nexus-lan");
                 
                 const offer = await this.pc.createOffer();
                 await this.pc.setLocalDescription(offer);
 
-                await new Promise(res => {
-                    if (this.pc.iceGatheringState === 'complete') res();
-                    else {
-                        const check = () => {
-                            if (this.pc.iceGatheringState === 'complete') {
-                                this.pc.removeEventListener('icegatheringstatechange', check);
-                                res();
-                            }
-                        };
-                        this.pc.addEventListener('icegatheringstatechange', check);
-                        setTimeout(res, 1200);
-                    }
-                });
+                await this.waitForICEGathering(this.pc, 3500);
 
-                const minSDP = this.compressSDP(this.pc.localDescription.sdp);
-                const payload = { i: this.app.myId, t: this.pc.localDescription.type, s: minSDP };
-                this.currentOfferPayload = this.encodePayload(payload);
+                const packed = this.packSDP(this.pc.localDescription.sdp, this.app.myId, 'offer');
+                this.currentOfferPayload = this.encodePayload(packed);
                 return this.currentOfferPayload;
             }
 
@@ -1170,12 +1230,25 @@
                 try {
                     const data = this.decodePayload(answerStr);
                     const peerId = data.i || data.id;
-                    const sdpType = data.t || (data.sdp ? data.sdp.type : 'answer');
-                    const sdpString = data.s || (data.sdp ? data.sdp.sdp : data.sdp);
+                    let sdpString;
+                    let sdpType = data.t || 'answer';
+
+                    if (data.u && data.p && data.f) {
+                        sdpString = this.unpackSDP(data);
+                    } else if (data.s) {
+                        sdpString = data.s;
+                    } else if (data.sdp) {
+                        sdpString = typeof data.sdp === 'string' ? data.sdp : data.sdp.sdp;
+                        sdpType = data.sdp.type || sdpType;
+                    } else {
+                        sdpString = typeof data === 'string' ? data : '';
+                    }
+
+                    if (!sdpString) throw new Error("Invalid SDP payload");
 
                     await this.pc.setRemoteDescription(new RTCSessionDescription({ type: sdpType, sdp: sdpString }));
                     this.setupChannelListeners(this.dataChannel, peerId);
-                    this.app.ui.showToast("LAN Connected to " + peerId + "!");
+                    this.app.ui.showToast("LAN Handshake complete for " + peerId + "!");
                     this.app.ui.hideModal('lan-modal');
                 } catch(e) {
                     console.error(e);
@@ -1187,9 +1260,25 @@
                 try {
                     const data = this.decodePayload(offerStr);
                     const peerId = data.i || data.id;
-                    const sdpType = data.t || (data.sdp ? data.sdp.type : 'offer');
-                    const sdpString = data.s || (data.sdp ? data.sdp.sdp : data.sdp);
+                    let sdpString;
+                    let sdpType = data.t || 'offer';
 
+                    if (data.u && data.p && data.f) {
+                        sdpString = this.unpackSDP(data);
+                    } else if (data.s) {
+                        sdpString = data.s;
+                    } else if (data.sdp) {
+                        sdpString = typeof data.sdp === 'string' ? data.sdp : data.sdp.sdp;
+                        sdpType = data.sdp.type || sdpType;
+                    } else {
+                        sdpString = typeof data === 'string' ? data : '';
+                    }
+
+                    if (!sdpString) throw new Error("Invalid SDP payload");
+
+                    if (this.pc) {
+                        try { this.pc.close(); } catch(e) {}
+                    }
                     this.pc = this.createPeerConnection();
 
                     this.pc.ondatachannel = (e) => {
@@ -1201,23 +1290,10 @@
                     const answer = await this.pc.createAnswer();
                     await this.pc.setLocalDescription(answer);
 
-                    await new Promise(res => {
-                        if (this.pc.iceGatheringState === 'complete') res();
-                        else {
-                            const check = () => {
-                                if (this.pc.iceGatheringState === 'complete') {
-                                    this.pc.removeEventListener('icegatheringstatechange', check);
-                                    res();
-                                }
-                            };
-                            this.pc.addEventListener('icegatheringstatechange', check);
-                            setTimeout(res, 1200);
-                        }
-                    });
+                    await this.waitForICEGathering(this.pc, 3500);
 
-                    const minSDP = this.compressSDP(this.pc.localDescription.sdp);
-                    const payload = { i: this.app.myId, t: this.pc.localDescription.type, s: minSDP };
-                    this.currentAnswerPayload = this.encodePayload(payload);
+                    const packed = this.packSDP(this.pc.localDescription.sdp, this.app.myId, 'answer');
+                    this.currentAnswerPayload = this.encodePayload(packed);
                     return this.currentAnswerPayload;
                 } catch(e) {
                     console.error(e);
@@ -1227,6 +1303,7 @@
             }
 
             setupChannelListeners(channel, peerId) {
+                if (!channel) return;
                 const connProxy = {
                     peer: peerId,
                     open: channel.readyState === 'open',
@@ -1245,7 +1322,7 @@
                     await this.app.store.saveContact({ id: peerId, name: peerId, status: 'Online (LAN)' });
                     this.app.net.registerExternalConn(peerId, connProxy);
                     this.app.renderContacts();
-                    this.app.ui.showToast("LAN Tunnel Active!");
+                    this.app.ui.showToast("LAN Tunnel Active with " + peerId + "!");
                 };
 
                 channel.onmessage = (e) => {
@@ -1260,10 +1337,77 @@
                     this.app.onPeerDisconnect(peerId);
                 };
 
-                if (channel.readyState === 'open') channel.onopen();
+                if (channel.readyState === 'open') {
+                    channel.onopen();
+                }
             }
 
-            // Full Scanner Cleanup Fix
+            async startScanner(mode) {
+                this.scanMode = mode;
+                await this.stopScanner();
+
+                document.getElementById('lan-step-select').style.display = 'none';
+                document.getElementById('lan-step-host').style.display = 'none';
+                document.getElementById('lan-step-join').style.display = 'none';
+                document.getElementById('lan-step-paste').style.display = 'none';
+                
+                const scanStep = document.getElementById('lan-step-scan');
+                scanStep.style.display = 'flex';
+
+                const titleEl = document.getElementById('lan-scan-title');
+                titleEl.innerText = mode === 'answer' ? "Scan Answer QR Code" : "Scan Host's Connection QR";
+
+                requestAnimationFrame(async () => {
+                    try {
+                        this.html5QrCode = new Html5Qrcode("lan-qr-reader");
+                        await this.html5QrCode.start(
+                            { facingMode: "environment" },
+                            { 
+                                fps: 15, 
+                                qrbox: (w, h) => {
+                                    const min = Math.min(w, h);
+                                    return { width: Math.floor(min * 0.75), height: Math.floor(min * 0.75) };
+                                }, 
+                                aspectRatio: 1.0 
+                            },
+                            async (decodedText) => {
+                                await this.stopScanner();
+                                document.getElementById('lan-step-scan').style.display = 'none';
+                                
+                                if (this.scanMode === 'answer') {
+                                    document.getElementById('lan-step-host').style.display = 'flex';
+                                    await this.handleHostScanAnswer(decodedText);
+                                } else {
+                                    document.getElementById('lan-step-join').style.display = 'flex';
+                                    const answerStr = await this.handleJoinerScanOffer(decodedText);
+                                    if (answerStr) {
+                                        document.getElementById('lan-join-answer-wrap').style.display = 'flex';
+                                        document.getElementById('lan-qrcode-answer').innerHTML = '';
+                                        new QRCode(document.getElementById('lan-qrcode-answer'), {
+                                            text: answerStr, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.L
+                                        });
+                                    }
+                                }
+                            },
+                            () => {}
+                        );
+                    } catch(err) {
+                        this.app.ui.showToast("Camera error: " + (err.message || err));
+                        this.cancelScanner();
+                    }
+                });
+            }
+
+            cancelScanner() {
+                this.stopScanner();
+                document.getElementById('lan-step-scan').style.display = 'none';
+                if (this.scanMode === 'answer') {
+                    document.getElementById('lan-step-host').style.display = 'flex';
+                } else {
+                    document.getElementById('lan-step-join').style.display = 'flex';
+                }
+            }
+
             async stopScanner() {
                 if (this.html5QrCode) {
                     try {
@@ -1276,8 +1420,6 @@
                     }
                     this.html5QrCode = null;
                 }
-                const readerDiv = document.getElementById('lan-qr-reader');
-                if (readerDiv) readerDiv.style.display = 'none';
             }
         }
 
@@ -1571,11 +1713,12 @@
                     }
                 };
 
-                // --- OFFLINE LAN WEBRTC SCANNER EVENT LISTENERS (FULLY PATCHED) ---
+                // --- OFFLINE LAN SCANNER EVENT LISTENERS ---
                 document.getElementById('btn-open-lan-modal').onclick = () => {
                     document.getElementById('lan-step-select').style.display = 'flex';
                     document.getElementById('lan-step-host').style.display = 'none';
                     document.getElementById('lan-step-join').style.display = 'none';
+                    document.getElementById('lan-step-scan').style.display = 'none';
                     document.getElementById('lan-step-paste').style.display = 'none';
                     this.ui.showModal('lan-modal');
                 };
@@ -1604,27 +1747,8 @@
                     }
                 };
 
-                document.getElementById('btn-scan-answer-qr').onclick = async () => {
-                    await this.lan.stopScanner();
-                    const readerDiv = document.getElementById('lan-qr-reader');
-                    readerDiv.style.display = 'block';
-
-                    requestAnimationFrame(async () => {
-                        try {
-                            this.lan.html5QrCode = new Html5Qrcode("lan-qr-reader");
-                            await this.lan.html5QrCode.start(
-                                { facingMode: "environment" },
-                                { fps: 10, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
-                                async (decodedText) => {
-                                    await this.lan.stopScanner();
-                                    this.lan.handleHostScanAnswer(decodedText);
-                                },
-                                () => {}
-                            );
-                        } catch(err) {
-                            this.ui.showToast("Camera error: " + (err.message || err));
-                        }
-                    });
+                document.getElementById('btn-scan-answer-qr').onclick = () => {
+                    this.lan.startScanner('answer');
                 };
 
                 document.getElementById('btn-paste-answer-str').onclick = () => {
@@ -1638,34 +1762,12 @@
                     document.getElementById('lan-step-join').style.display = 'flex';
                 };
 
-                document.getElementById('btn-start-join-scan').onclick = async () => {
-                    await this.lan.stopScanner();
-                    const readerDiv = document.getElementById('lan-qr-reader');
-                    readerDiv.style.display = 'block';
+                document.getElementById('btn-start-join-scan').onclick = () => {
+                    this.lan.startScanner('offer');
+                };
 
-                    requestAnimationFrame(async () => {
-                        try {
-                            this.lan.html5QrCode = new Html5Qrcode("lan-qr-reader");
-                            await this.lan.html5QrCode.start(
-                                { facingMode: "environment" },
-                                { fps: 10, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 },
-                                async (decodedText) => {
-                                    await this.lan.stopScanner();
-                                    const answerStr = await this.lan.handleJoinerScanOffer(decodedText);
-                                    if (answerStr) {
-                                        document.getElementById('lan-join-answer-wrap').style.display = 'flex';
-                                        document.getElementById('lan-qrcode-answer').innerHTML = '';
-                                        new QRCode(document.getElementById('lan-qrcode-answer'), {
-                                            text: answerStr, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.L
-                                        });
-                                    }
-                                },
-                                () => {}
-                            );
-                        } catch(err) {
-                            this.ui.showToast("Camera error: " + (err.message || err));
-                        }
-                    });
+                document.getElementById('btn-cancel-scan').onclick = () => {
+                    this.lan.cancelScanner();
                 };
 
                 document.getElementById('btn-paste-offer-str').onclick = () => {
@@ -1678,6 +1780,15 @@
                     if (this.lan.currentAnswerPayload) {
                         navigator.clipboard.writeText(this.lan.currentAnswerPayload);
                         this.ui.showToast("Answer Code Copied!");
+                    }
+                };
+
+                document.getElementById('btn-lan-paste-back').onclick = () => {
+                    document.getElementById('lan-step-paste').style.display = 'none';
+                    if (this.lan.targetPasteMode === 'answer') {
+                        document.getElementById('lan-step-host').style.display = 'flex';
+                    } else {
+                        document.getElementById('lan-step-join').style.display = 'flex';
                     }
                 };
 
@@ -1805,7 +1916,7 @@
                     } catch(err) { resDiv.innerHTML = '<span style="color:#FF5F56; font-size:12px; width:100%; text-align:center; padding:15px; display:block;">Klipy API Error. Check browser console.</span>'; }
                 }, 500);
 
-                const moreEmojis = ['🔥','🥳','👀','💯','💀','💔','🎉','💩','🤡','🥺','😡','😎','🤌','✨','👽','👻','🤝','👏','🙌','💪'];
+                const moreEmojis = ['🔥','🥳','🥶','💯','💀','💔','💋','💩','🤡','🥺','😡','😎','🤌','✨','🫩','😝','🤝','👏','🗣️','❤️‍🔥'];
                 const grid = document.getElementById('extended-emoji-grid');
                 grid.innerHTML = moreEmojis.map(e => `<span class="react-btn-float" data-emoji="${e}">${e}</span>`).join('');
                 
@@ -1907,7 +2018,7 @@
                             ctx.stroke();
                         } else {
                             this.lbPanX = e.touches[0].clientX - this.lbStartX;
-                            this.lbPanY = e.touches[0].clientY - this.lbStartY;
+                            this.lbPanY = e.touches[0].clientY - this.lbPanY;
                             setLbTransform();
                         }
                     }
