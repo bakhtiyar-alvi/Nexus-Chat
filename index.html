@@ -26,7 +26,7 @@
             --accent: #5865F2; --accent-hover: #4752C4; --accent-cyan: #5865F2;
             --border-light: rgba(255, 255, 255, 0.08);
             --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.4); --shadow-glow: 0 0 15px rgba(88, 101, 242, 0.3);
-            --radius-window: 16px; --radius-bubble: 18px; --blur-intensity: 20px;
+            --radius-window: 0px; --radius-bubble: 18px; --blur-intensity: 20px;
             --font-size-base: 14px; --window-opacity: 1;
             --font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
@@ -47,11 +47,10 @@
         input, textarea { font-family: inherit; font-size: inherit; }
 
         .glass { background: var(--bg-panel); backdrop-filter: blur(var(--blur-intensity)); border: 1px solid var(--border-light); box-shadow: var(--shadow-soft); opacity: var(--window-opacity); }
-        #app-window { position: absolute; width: 900px; height: 600px; min-width: 600px; min-height: 400px; border-radius: var(--radius-window); display: flex; flex-direction: column; overflow: hidden; transition: opacity 0.2s, transform 0.2s; opacity: 0; transform: scale(0.95); z-index: 10; background: var(--bg-base); }
+        #app-window { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; display: flex; flex-direction: column; overflow: hidden; transition: opacity 0.2s, transform 0.2s; opacity: 0; transform: scale(1); z-index: 10; background: var(--bg-base); }
         #app-window.active { opacity: var(--window-opacity); transform: scale(1); }
         
-        .titlebar { height: 40px; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; cursor: grab; user-select: none; flex-shrink: 0; z-index: 10;}
-        .titlebar:active { cursor: grabbing; }
+        .titlebar { height: 40px; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; cursor: default; user-select: none; flex-shrink: 0; z-index: 10;}
         .window-controls { display: flex; gap: 8px; }
         .win-btn { width: 14px; height: 14px; border-radius: 50%; }
         .win-btn.close { background: #FF5F56; }
@@ -237,7 +236,7 @@
         #floating-bubble.active { opacity: 1; pointer-events: all; transform: scale(1); }
         .badge { position: absolute; top: -5px; right: -5px; background: #FF5F56; color: #fff; font-size: 12px; font-weight: bold; width: 22px; height: 22px; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(255, 95, 86, 0.5);}
         .badge.active { display: flex; }
-        .resizer { position: absolute; width: 15px; height: 15px; bottom: 0; right: 0; cursor: se-resize; z-index: 10; }
+        .resizer { display: none; }
 
         @media (max-width: 768px) {
             #app-window { width: 100% !important; height: 100% !important; min-width: 0 !important; min-height: 0 !important; top: 0 !important; left: 0 !important; border-radius: 0; transform: scale(1) !important; }
@@ -496,7 +495,7 @@
             <span class="react-btn-float" data-emoji="👍">👍</span>
             <span class="react-btn-float" data-emoji="😮">😮</span>
             <span class="react-btn-float" data-emoji="😢">😢</span>
-            <span class="react-btn-float" data-emoji="👑">👑</span>
+            <span class="react-btn-float" data-emoji="🙏">🙏</span>
             <div class="react-btn-add" id="btn-more-emojis"><svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div>
         </div>
         <div class="extended-emoji-grid" id="extended-emoji-grid"></div>
@@ -1047,13 +1046,7 @@
             constructor(app) { this.app = app; this.initDrag(); }
 
             initDrag() {
-                const win = document.getElementById('app-window'); let isDrag = false, sx, sy, sl, st;
-                document.getElementById('drag-handle').onmousedown = (e) => {
-                    if(window.innerWidth <= 768 || e.target.closest('.window-controls') || e.target.closest('button') || e.target.closest('input')) return;
-                    isDrag = true; sx = e.clientX; sy = e.clientY; sl = win.offsetLeft; st = win.offsetTop; win.style.transition = 'none';
-                };
-                document.addEventListener('mousemove', (e) => { if(isDrag) { win.style.left = (sl+e.clientX-sx)+'px'; win.style.top = Math.max(0, st+e.clientY-sy)+'px'; } });
-                document.addEventListener('mouseup', () => { if(isDrag){ isDrag=false; win.style.transition = 'opacity 0.2s, transform 0.2s'; this.app.store.set('winPos', {x:win.offsetLeft, y:win.offsetTop}); } });
+                // Desktop full screen layout mode initialized
             }
 
             async loadSettings(store) {                
@@ -1064,8 +1057,6 @@
                 const o = await store.get('opacity', 1); document.documentElement.style.setProperty('--window-opacity', o); document.getElementById('slider-opacity').value = o;
                 const s = await store.get('fontSize', 14); document.documentElement.style.setProperty('--font-size-base', s+'px'); document.getElementById('slider-fontsize').value = s;
 
-                const pos = await store.get('winPos');
-                if(pos && window.innerWidth > 768) { const w = document.getElementById('app-window'); w.style.left = pos.x+'px'; w.style.top = pos.y+'px'; }
                 setTimeout(()=>document.getElementById('app-window').classList.add('active'), 100);
             }
 
@@ -1916,7 +1907,7 @@
                     } catch(err) { resDiv.innerHTML = '<span style="color:#FF5F56; font-size:12px; width:100%; text-align:center; padding:15px; display:block;">Klipy API Error. Check browser console.</span>'; }
                 }, 500);
 
-                const moreEmojis = ['🔥','🥳','🥶','💯','💀','💔','💋','💩','🤡','🥺','😡','😎','🤌','✨','🫩','😝','🤝','👏','🗣️','❤️‍🔥'];
+                const moreEmojis = ['🔥','🥳','👀','💯','💀','💔','🎉','💩','🤡','🥺','😡','😎','🤌','✨','👽','👻','🤝','👏','🙌','💪'];
                 const grid = document.getElementById('extended-emoji-grid');
                 grid.innerHTML = moreEmojis.map(e => `<span class="react-btn-float" data-emoji="${e}">${e}</span>`).join('');
                 
