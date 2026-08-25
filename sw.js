@@ -48,7 +48,7 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 // Cache bumped to v16.5 for automatic refresh
-const CACHE_NAME = 'nexus-secure-v16.4';
+const CACHE_NAME = 'nexus-secure-v16.5';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
