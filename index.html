@@ -9,8 +9,8 @@
     <meta name="theme-color" content="#000000">
     <title>Nexus Secure | Production Pro</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/svg+xml" href="logo.svg">
-    <link rel="apple-touch-icon" href="logo.svg">
+    <link rel="icon" type="image/svg+xml" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
     
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -1084,7 +1084,7 @@
                 
                 if (isAppMinimized || isTabBackground) {
                     if ('Notification' in window && Notification.permission === "granted") {
-                        new Notification("Nexus Secure", { body: text, icon: "logo.svg" });
+                        new Notification("Nexus Secure", { body: text, icon: "logo.png" });
                     }
                 }
             }
