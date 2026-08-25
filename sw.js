@@ -22,8 +22,8 @@ self.addEventListener('push', function(event) {
 
     const options = {
         body: data.body,
-        icon: './logo.svg',
-        badge: './logo.svg',
+        icon: './logo.png',
+        badge: './logo.png',
         vibrate: [200, 100, 200, 100, 200],
         tag: 'nexus-message',
         renotify: true,
@@ -53,7 +53,7 @@ const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './manifest.json',
-    './logo.svg',
+    './logo.png',
     'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js',
     'https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js',
     'https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js',
